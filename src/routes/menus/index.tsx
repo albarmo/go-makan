@@ -91,7 +91,19 @@ function MenusContent() {
               <div class="space-y-6">
                 <For each={filteredMenus()}>
                   {(menu) => (
-                    <div class="tm-card p-7">
+                    <div class="tm-card overflow-hidden p-7">
+                      <Show
+                        when={menu.imageUrl}
+                        fallback={
+                          <div class="mb-5 h-48 rounded-[1.5rem] bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100" />
+                        }
+                      >
+                        <img
+                          src={menu.imageUrl!}
+                          alt={menu.name}
+                          class="mb-5 h-48 w-full rounded-[1.5rem] object-cover"
+                        />
+                      </Show>
                       <div class="mb-4 flex items-start justify-between gap-4">
                         <div>
                           <p class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">

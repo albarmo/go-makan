@@ -7,8 +7,30 @@ import {
   integer,
   timestamp,
   date,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+
+export const userProfiles = pgTable(
+  "user_profiles",
+  {
+    id: serial("id").primaryKey(),
+    profileKey: varchar("profile_key", { length: 255 }).notNull(),
+    role: varchar("role", { length: 50 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    normalizedName: varchar("normalized_name", { length: 255 }).notNull(),
+    bankName: varchar("bank_name", { length: 255 }),
+    accountNumber: varchar("account_number", { length: 100 }),
+    cardholderName: varchar("cardholder_name", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    profileKeyIdx: uniqueIndex("user_profiles_profile_key_idx").on(
+      table.profileKey,
+    ),
+  }),
+);
 
 export const stores = pgTable("stores", {
   id: serial("id").primaryKey(),
@@ -45,9 +67,15 @@ export const orders = pgTable("orders", {
     .references(() => stores.id)
     .notNull(),
   status: varchar("status", { length: 50 }).default("submitted").notNull(),
+  paymentStatus: varchar("payment_status", { length: 50 })
+    .default("unpaid")
+    .notNull(),
   notes: text("notes"),
   totalAmount: integer("total_amount").default(0).notNull(),
   purchasedAt: timestamp("purchased_at"),
+  paidAt: timestamp("paid_at"),
+  paymentProofUrl: text("payment_proof_url"),
+  paymentProofUploadedAt: timestamp("payment_proof_uploaded_at"),
   cancelledAt: timestamp("cancelled_at"),
   cancellationReason: text("cancellation_reason"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -94,7 +122,9 @@ export type Store = typeof stores.$inferSelect;
 export type Menu = typeof menus.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type UserProfile = typeof userProfiles.$inferSelect;
 export type NewStore = typeof stores.$inferInsert;
 export type NewMenu = typeof menus.$inferInsert;
 export type NewOrder = typeof orders.$inferInsert;
 export type NewOrderItem = typeof orderItems.$inferInsert;
+export type NewUserProfile = typeof userProfiles.$inferInsert;

@@ -2,8 +2,66 @@ import { query, action, redirect } from "@solidjs/router";
 import { eq, and, ne, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
-import { orders, orderItems, stores, menus } from "~/lib/db/schema";
+import { orders, orderItems, stores, menus, userProfiles } from "~/lib/db/schema";
 import { buildOrderSummary, todayString } from "~/lib/utils";
+
+export interface OrderListItem {
+  id: number;
+  orderDate: string;
+  requesterName: string;
+  buyerName: string | null;
+  storeId: number;
+  storeName: string;
+  status: string;
+  paymentStatus: string;
+  notes: string | null;
+  totalAmount: number;
+  purchasedAt: Date | null;
+  paidAt: Date | null;
+  cancelledAt: Date | null;
+  cancellationReason: string | null;
+  createdAt: Date;
+  itemSummary: string;
+  itemCount: number;
+}
+
+export interface OrderDetailItem {
+  id: number;
+  orderId: number;
+  menuId: number;
+  menuNameSnapshot: string;
+  priceSnapshot: number;
+  quantity: number;
+  notes: string | null;
+  subtotal: number;
+  createdAt: Date;
+}
+
+export interface OrderDetail {
+  id: number;
+  orderDate: string;
+  requesterName: string;
+  buyerName: string | null;
+  storeId: number;
+  storeName: string;
+  status: string;
+  paymentStatus: string;
+  notes: string | null;
+  totalAmount: number;
+  purchasedAt: Date | null;
+  paidAt: Date | null;
+  paymentProofUrl: string | null;
+  paymentProofUploadedAt: Date | null;
+  cancelledAt: Date | null;
+  cancellationReason: string | null;
+  createdAt: Date;
+  items: OrderDetailItem[];
+  buyerPaymentProfile: {
+    bankName: string | null;
+    accountNumber: string | null;
+    cardholderName: string | null;
+  } | null;
+}
 
 const OrderItemInput = z.object({
   menuId: z.number().int().positive(),
@@ -20,7 +78,7 @@ const CreateOrderSchema = z.object({
   items: z.array(OrderItemInput).min(1, "Minimal 1 item"),
 });
 
-export const getMyOrders = query(async (requesterName: string) => {
+export const getMyOrders = query(async (requesterName: string): Promise<OrderListItem[]> => {
   "use server";
   const today = todayString();
   const result = await db
@@ -32,9 +90,13 @@ export const getMyOrders = query(async (requesterName: string) => {
       storeId: orders.storeId,
       storeName: stores.name,
       status: orders.status,
+      paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       totalAmount: orders.totalAmount,
       purchasedAt: orders.purchasedAt,
+      paidAt: orders.paidAt,
+      paymentProofUrl: orders.paymentProofUrl,
+      paymentProofUploadedAt: orders.paymentProofUploadedAt,
       cancelledAt: orders.cancelledAt,
       cancellationReason: orders.cancellationReason,
       createdAt: orders.createdAt,
@@ -46,7 +108,7 @@ export const getMyOrders = query(async (requesterName: string) => {
     )
     .orderBy(desc(orders.createdAt));
 
-  if (result.length === 0) return result;
+  if (result.length === 0) return [];
 
   const itemRows = await db
     .select({
@@ -64,7 +126,7 @@ export const getMyOrders = query(async (requesterName: string) => {
     itemsByOrderId.set(item.orderId, existing);
   }
 
-  return result.map((order) => {
+  return result.map<OrderListItem>((order) => {
     const orderItemsForSummary = itemsByOrderId.get(order.id) ?? [];
     return {
       ...order,
@@ -74,7 +136,7 @@ export const getMyOrders = query(async (requesterName: string) => {
   });
 }, "getMyOrders");
 
-export const getTodayOrders = query(async () => {
+export const getTodayOrders = query(async (): Promise<OrderListItem[]> => {
   "use server";
   const today = todayString();
   const result = await db
@@ -86,9 +148,11 @@ export const getTodayOrders = query(async () => {
       storeId: orders.storeId,
       storeName: stores.name,
       status: orders.status,
+      paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       totalAmount: orders.totalAmount,
       purchasedAt: orders.purchasedAt,
+      paidAt: orders.paidAt,
       cancelledAt: orders.cancelledAt,
       cancellationReason: orders.cancellationReason,
       createdAt: orders.createdAt,
@@ -98,7 +162,7 @@ export const getTodayOrders = query(async () => {
     .where(eq(orders.orderDate, today))
     .orderBy(desc(orders.createdAt));
 
-  if (result.length === 0) return result;
+  if (result.length === 0) return [];
 
   const itemRows = await db
     .select({
@@ -116,7 +180,7 @@ export const getTodayOrders = query(async () => {
     itemsByOrderId.set(item.orderId, existing);
   }
 
-  return result.map((order) => {
+  return result.map<OrderListItem>((order) => {
     const orderItemsForSummary = itemsByOrderId.get(order.id) ?? [];
     return {
       ...order,
@@ -126,7 +190,7 @@ export const getTodayOrders = query(async () => {
   });
 }, "getTodayOrders");
 
-export const getOrderById = query(async (id: number) => {
+export const getOrderById = query(async (id: number): Promise<OrderDetail | null> => {
   "use server";
   const [order] = await db
     .select({
@@ -137,9 +201,11 @@ export const getOrderById = query(async (id: number) => {
       storeId: orders.storeId,
       storeName: stores.name,
       status: orders.status,
+      paymentStatus: orders.paymentStatus,
       notes: orders.notes,
       totalAmount: orders.totalAmount,
       purchasedAt: orders.purchasedAt,
+      paidAt: orders.paidAt,
       cancelledAt: orders.cancelledAt,
       cancellationReason: orders.cancellationReason,
       createdAt: orders.createdAt,
@@ -156,7 +222,23 @@ export const getOrderById = query(async (id: number) => {
     .where(eq(orderItems.orderId, id))
     .orderBy(orderItems.id);
 
-  return { ...order, items };
+  let buyerPaymentProfile: OrderDetail["buyerPaymentProfile"] = null;
+
+  if (order.buyerName) {
+    const normalizedBuyerName = order.buyerName.trim().replace(/\s+/g, " ").toLowerCase();
+    const [profile] = await db
+      .select({
+        bankName: userProfiles.bankName,
+        accountNumber: userProfiles.accountNumber,
+        cardholderName: userProfiles.cardholderName,
+      })
+      .from(userProfiles)
+      .where(eq(userProfiles.profileKey, `pembeli:${normalizedBuyerName}`));
+
+    buyerPaymentProfile = profile ?? null;
+  }
+
+  return { ...order, items, buyerPaymentProfile };
 }, "getOrderById");
 
 export const getBuyerRecap = query(async () => {
@@ -167,6 +249,7 @@ export const getBuyerRecap = query(async () => {
       orderId: orders.id,
       requesterName: orders.requesterName,
       orderStatus: orders.status,
+      paymentStatus: orders.paymentStatus,
       storeId: stores.id,
       storeName: stores.name,
       menuName: orderItems.menuNameSnapshot,
@@ -205,6 +288,7 @@ export const getBuyerRecap = query(async () => {
             quantity: number;
             notes: string | null;
             status: string;
+            paymentStatus: string;
           }[];
         }
       >;
@@ -239,6 +323,7 @@ export const getBuyerRecap = query(async () => {
       quantity: row.quantity,
       notes: row.itemNotes,
       status: row.orderStatus,
+      paymentStatus: row.paymentStatus,
     });
   }
 
@@ -257,6 +342,7 @@ export const getSettlement = query(async () => {
       requesterName: orders.requesterName,
       storeName: stores.name,
       status: orders.status,
+      paymentStatus: orders.paymentStatus,
       totalAmount: orders.totalAmount,
       menuName: orderItems.menuNameSnapshot,
       quantity: orderItems.quantity,
@@ -283,6 +369,7 @@ export const getSettlement = query(async () => {
           orderId: number;
           storeName: string;
           status: string;
+          paymentStatus: string;
           orderTotal: number;
           items: { menuName: string; quantity: number; price: number; subtotal: number }[];
         }
@@ -304,6 +391,7 @@ export const getSettlement = query(async () => {
         orderId: row.orderId,
         storeName: row.storeName,
         status: row.status,
+        paymentStatus: row.paymentStatus,
         orderTotal: row.totalAmount,
         items: [],
       });
@@ -347,6 +435,7 @@ export const createOrderAction = action(async (formData: FormData) => {
       storeId: parsed.storeId,
       notes: parsed.notes,
       status: "submitted",
+      paymentStatus: "unpaid",
       totalAmount,
     })
     .returning({ id: orders.id });
@@ -396,6 +485,7 @@ export const markPurchasedAction = action(async (formData: FormData) => {
     .set({
       status: "purchased",
       buyerName,
+      paymentStatus: "unpaid",
       purchasedAt: new Date(),
       updatedAt: new Date(),
     })
@@ -403,3 +493,26 @@ export const markPurchasedAction = action(async (formData: FormData) => {
 
   return redirect("/buyer/orders");
 }, "markPurchased");
+
+export const markOrderPaidAction = action(async (formData: FormData) => {
+  "use server";
+  const id = parseInt(formData.get("id") as string);
+  const paymentProofUrl = (formData.get("paymentProofUrl") as string)?.trim();
+
+  if (!paymentProofUrl) {
+    throw new Error("Bukti pembayaran wajib diupload.");
+  }
+
+  await db
+    .update(orders)
+    .set({
+      paymentStatus: "paid",
+      paidAt: new Date(),
+      paymentProofUrl,
+      paymentProofUploadedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(orders.id, id));
+
+  return redirect(`/orders/${id}`);
+}, "markOrderPaid");

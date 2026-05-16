@@ -27,7 +27,7 @@ const RoleGuard: ParentComponent<RoleGuardProps> = (props) => {
       when={mounted() && user()}
       fallback={
         <div class="flex min-h-screen items-center justify-center">
-          <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
+          <div class="h-8 w-8 animate-spin rounded-lg border-4 border-primary-500 border-t-transparent" />
         </div>
       }
     >

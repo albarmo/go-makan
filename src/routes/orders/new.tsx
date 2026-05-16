@@ -159,12 +159,12 @@ function NewOrderContent() {
             <button
               type="button"
               onClick={() => history.back()}
-              class="flex h-11 w-11 items-center justify-center rounded-full text-slate-900"
+              class="flex h-11 w-11 items-center justify-center rounded-lg text-slate-900"
               aria-label="Kembali"
             >
               <IconChevronLeft class="h-7 w-7" />
             </button>
-            <h1 class="text-xl font-bold tracking-[-0.05em] text-slate-900">
+            <h1 class=" font-bold tracking-[-0.05em] text-slate-900">
               Create Order
             </h1>
           </div>
@@ -180,27 +180,23 @@ function NewOrderContent() {
           </div>
 
           <section class="space-y-5">
-            <h2 class="text-xl font-semibold tracking-[-0.05em] text-slate-900">
+            <h2 class=" font-semibold tracking-[-0.05em] text-slate-900">
               Order Details
             </h2>
 
             <div>
-              <label class="mb-3 block text-lg font-semibold text-slate-800">
+              <label class="mb-3 block  font-semibold text-slate-800">
                 Your Name
               </label>
-              <input
-                class="input text-lg"
-                value={user()?.name ?? ""}
-                disabled
-              />
+              <input class="input " value={user()?.name ?? ""} disabled />
             </div>
 
             <div>
-              <label class="mb-3 block text-lg font-semibold text-slate-800">
+              <label class="mb-3 block  font-semibold text-slate-800">
                 Select Store
               </label>
               <select
-                class="input text-lg"
+                class="input "
                 value={selectedStoreId() ?? ""}
                 onChange={(e) => {
                   const nextValue = e.currentTarget.value;
@@ -223,17 +219,18 @@ function NewOrderContent() {
 
           <section class="mt-10">
             <div class="mb-5 flex items-center justify-between gap-4">
-              <h2 class="text-xl font-semibold tracking-[-0.05em] text-slate-900">
+              <h2 class=" font-semibold tracking-[-0.05em] text-slate-900">
                 Menu
               </h2>
-              <span class="rounded-full bg-slate-200 px-4 py-2 text-base text-slate-600">
+              <span class="rounded-lg bg-slate-200 px-4 py-2 text-base text-slate-600">
                 {selectedStore()?.name ?? "Semua Menu"}
               </span>
             </div>
 
             <Show when={lockedStoreId() && !selectedStore()}>
               <p class="mb-4 text-sm text-slate-500">
-                Setelah pilih item pertama, order hanya bisa berisi menu dari store yang sama.
+                Setelah pilih item pertama, order hanya bisa berisi menu dari
+                store yang sama.
               </p>
             </Show>
 
@@ -250,7 +247,7 @@ function NewOrderContent() {
                           selectable() ? "" : "opacity-50"
                         }`}
                       >
-                        <div class="h-36 rounded-[1.5rem] bg-slate-200">
+                        <div class="h-36 rounded-lg bg-slate-200">
                           <Show
                             when={menu.imageUrl}
                             fallback={
@@ -260,11 +257,11 @@ function NewOrderContent() {
                             <img
                               src={menu.imageUrl!}
                               alt={menu.name}
-                              class="h-full w-full rounded-[1.5rem] object-cover"
+                              class="h-full w-full rounded-lg object-cover"
                             />
                           </Show>
                         </div>
-                        <p class="mt-4 text-xl font-semibold leading-8 tracking-[-0.03em] text-slate-900">
+                        <p class="mt-4  font-semibold leading-8 tracking-[-0.03em] text-slate-900">
                           {menu.name}
                         </p>
                         <Show when={menu.storeName}>
@@ -272,7 +269,7 @@ function NewOrderContent() {
                             {menu.storeName}
                           </p>
                         </Show>
-                        <p class="mt-1 text-lg text-slate-600">
+                        <p class="mt-1  text-slate-600">
                           {formatRupiah(menu.price)}
                         </p>
 
@@ -282,13 +279,16 @@ function NewOrderContent() {
                               type="button"
                               disabled={!selectable()}
                               onClick={() =>
-                                setQuantity(menu, (cartItem()?.quantity ?? 0) - 1)
+                                setQuantity(
+                                  menu,
+                                  (cartItem()?.quantity ?? 0) - 1,
+                                )
                               }
-                              class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-700 disabled:opacity-50"
+                              class="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100  text-slate-700 disabled:opacity-50"
                             >
                               -
                             </button>
-                            <span class="min-w-6 text-center text-lg font-semibold">
+                            <span class="min-w-6 text-center  font-semibold">
                               {cartItem()?.quantity}
                             </span>
                           </Show>
@@ -298,7 +298,7 @@ function NewOrderContent() {
                             onClick={() =>
                               setQuantity(menu, (cartItem()?.quantity ?? 0) + 1)
                             }
-                            class="flex h-12 w-12 items-center justify-center rounded-full bg-[#35bced] text-xl leading-none text-primary-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                            class="flex h-12 w-12 items-center justify-center rounded-lg bg-[#35bced]  leading-none text-primary-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                           >
                             +
                           </button>
@@ -319,7 +319,7 @@ function NewOrderContent() {
 
           <Show when={cart().length > 0}>
             <section class="mt-10">
-              <h2 class="mb-5 text-xl font-semibold tracking-[-0.05em] text-slate-900">
+              <h2 class="mb-5  font-semibold tracking-[-0.05em] text-slate-900">
                 Your Items
               </h2>
               <div class="tm-card p-5">
@@ -328,14 +328,14 @@ function NewOrderContent() {
                     <div class="border-b border-slate-200 py-4 last:border-b-0">
                       <div class="mb-4 flex items-start justify-between gap-4">
                         <div>
-                          <p class="text-xl font-semibold text-slate-900">
+                          <p class=" font-semibold text-slate-900">
                             {item.menuName}
                           </p>
-                          <p class="mt-1 text-lg text-primary-700">
+                          <p class="mt-1  text-primary-700">
                             {formatRupiah(item.price)}
                           </p>
                         </div>
-                        <div class="flex items-center gap-4 rounded-full bg-slate-100 px-5 py-3">
+                        <div class="flex items-center gap-4 rounded-lg bg-slate-100 px-5 py-3">
                           <button
                             type="button"
                             onClick={() =>
@@ -349,13 +349,11 @@ function NewOrderContent() {
                                 item.quantity - 1,
                               )
                             }
-                            class="text-xl text-slate-700"
+                            class=" text-slate-700"
                           >
                             -
                           </button>
-                          <span class="text-lg font-semibold">
-                            {item.quantity}
-                          </span>
+                          <span class=" font-semibold">{item.quantity}</span>
                           <button
                             type="button"
                             onClick={() =>
@@ -369,7 +367,7 @@ function NewOrderContent() {
                                 item.quantity + 1,
                               )
                             }
-                            class="text-xl text-slate-700"
+                            class=" text-slate-700"
                           >
                             +
                           </button>
@@ -397,8 +395,8 @@ function NewOrderContent() {
           <div class="tm-bottom-nav !border-t-slate-200">
             <div class="mx-auto max-w-[30rem] px-6 pb-6 pt-4">
               <div class="mb-4">
-                <p class="text-lg text-slate-600">Total Estimated</p>
-                <p class="mt-2 text-xl font-bold tracking-[-0.06em] text-primary-700">
+                <p class=" text-slate-600">Total Estimated</p>
+                <p class="mt-2  font-bold tracking-[-0.06em] text-primary-700">
                   {formatRupiah(totalAmount())}
                 </p>
               </div>
@@ -428,7 +426,7 @@ function StepBadge(props: { number: number; label: string; active?: boolean }) {
   return (
     <div class="flex flex-col items-center gap-3">
       <div
-        class={`flex h-12 w-12 items-center justify-center rounded-full text-base ${
+        class={`flex h-12 w-12 items-center justify-center rounded-lg text-base ${
           props.active
             ? "bg-primary-700 text-white"
             : "bg-slate-200 text-slate-700"
@@ -449,7 +447,7 @@ function MenuGridSkeleton() {
   return (
     <div class="grid grid-cols-2 gap-5">
       {[1, 2].map((item) => (
-        <div class="h-64 animate-pulse rounded-[2rem] bg-white/80" />
+        <div class="h-64 animate-pulse rounded-lg bg-white/80" />
       ))}
     </div>
   );

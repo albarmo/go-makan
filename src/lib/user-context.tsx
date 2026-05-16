@@ -11,6 +11,9 @@ export type Role = "pemesan" | "pembeli";
 export interface UserState {
   role: Role;
   name: string;
+  bankName?: string;
+  accountNumber?: string;
+  cardholderName?: string;
 }
 
 interface UserContextValue {

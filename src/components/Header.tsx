@@ -32,25 +32,25 @@ export default function Header(props: HeaderProps) {
               <Show
                 when={props.showUser !== false && user()}
                 fallback={
-                  <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-500">
+                  <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-sm font-bold text-slate-500">
                     TM
                   </div>
                 }
               >
-                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-sky-100 to-slate-200 text-sm font-bold text-primary-700 shadow-sm">
+                <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-sky-100 to-slate-200 text-sm font-bold text-primary-700 shadow-sm">
                   {initialsFromName(user()?.name ?? "TM")}
                 </div>
               </Show>
 
               <div class="min-w-0 flex-1">
-                <p class="truncate text-xl font-extrabold tracking-[-0.06em] text-primary-700">
+                <p class="truncate  font-extrabold tracking-[-0.06em] text-primary-700">
                   Titip Makan
                 </p>
               </div>
 
               <button
                 type="button"
-                class="flex h-11 w-11 items-center justify-center rounded-full text-primary-700 transition-colors hover:bg-sky-50"
+                class="flex h-11 w-11 items-center justify-center rounded-lg text-primary-700 transition-colors hover:bg-sky-50"
                 aria-label="Notifikasi"
               >
                 <IconBell class="h-6 w-6" />
@@ -61,14 +61,14 @@ export default function Header(props: HeaderProps) {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            class="flex h-11 w-11 items-center justify-center rounded-full text-primary-700 transition-colors hover:bg-sky-50"
+            class="flex h-11 w-11 items-center justify-center rounded-lg text-primary-700 transition-colors hover:bg-sky-50"
             aria-label="Kembali"
           >
             <IconChevronLeft class="h-6 w-6" />
           </button>
 
           <div class="min-w-0 flex-1">
-            <h1 class="truncate text-lg font-extrabold tracking-[-0.05em] text-primary-700">
+            <h1 class="truncate  font-extrabold tracking-[-0.05em] text-primary-700">
               {props.title}
             </h1>
           </div>

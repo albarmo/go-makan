@@ -19,10 +19,10 @@ const pemesanNav: NavItem[] = [
     matches: ["/my-orders", "/menus", "/orders/new", "/orders/"],
   },
   {
-    href: "/stores",
-    label: "Wallet",
+    href: "/settlement",
+    label: "Tagihan",
     Icon: IconWallet,
-    matches: ["/stores/new", "/stores/"],
+    matches: ["/settlement"],
   },
   { href: "/role", label: "Account", Icon: IconUser, matches: ["/role"] },
 ];
@@ -58,24 +58,42 @@ export default function BottomNav() {
 
   return (
     <nav class="tm-bottom-nav">
-      <div class="mx-auto flex max-w-[30rem] items-end justify-between px-6 pb-5 pt-3">
+      <div class="grid grid-cols-4 gap-1.5 rounded-lg border border-white/80 bg-white/90 p-1.5 shadow-[0_-8px_24px_rgba(15,68,93,0.07)] backdrop-blur">
         <For each={navItems()}>
-          {(item) => (
-            <A
-              href={item.href}
-              class="flex min-w-[4.5rem] flex-col items-center gap-1 text-primary-700/90"
-            >
-              <div
-                class={`flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.5rem] transition-all ${
-                  isActive(item)
-                    ? "bg-[#74e0f7] text-primary-700 shadow-sm"
-                    : "text-primary-700"
+          {(item) => {
+            const active = () => isActive(item);
+
+            return (
+              <A
+                href={item.href}
+                class={`flex min-h-[3.7rem] flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 py-1.5 text-center transition-all ${
+                  active()
+                    ? "bg-gradient-to-b from-sky-100 to-cyan-50 text-primary-700 shadow-sm"
+                    : "text-slate-500 hover:bg-slate-50 hover:text-primary-700"
                 }`}
               >
-                <item.Icon class="h-7 w-7" />
-              </div>
-            </A>
-          )}
+                <span
+                  class={`h-1 w-6 rounded-lg transition-all ${
+                    active() ? "bg-primary-700/70" : "bg-transparent"
+                  }`}
+                />
+                <div
+                  class={`flex h-8 w-8 items-center justify-center rounded-lg transition-all ${
+                    active() ? "bg-white text-primary-700" : "text-current"
+                  }`}
+                >
+                  <item.Icon class="h-4 w-4" />
+                </div>
+                <span
+                  class={`text-xs font-semibold leading-none ${
+                    active() ? "text-primary-700" : "text-slate-500"
+                  }`}
+                >
+                  {item.label}
+                </span>
+              </A>
+            );
+          }}
         </For>
       </div>
     </nav>

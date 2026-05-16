@@ -43,7 +43,7 @@ function StoresContent() {
             <IconSearch class="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-500" />
             <input
               type="search"
-              class="input pl-16 text-lg"
+              class="input pl-16 "
               placeholder="Cari store atau menu..."
               value={search()}
               onInput={(e) => setSearch(e.currentTarget.value)}
@@ -55,7 +55,7 @@ function StoresContent() {
               when={filteredStores().length > 0}
               fallback={
                 <div class="tm-card p-8">
-                  <p class="text-lg text-slate-600">
+                  <p class=" text-slate-600">
                     Belum ada store yang cocok dengan pencarian.
                   </p>
                 </div>
@@ -78,19 +78,19 @@ function StoresContent() {
                             class="h-full w-full object-cover"
                           />
                         </Show>
-                        <div class="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-base font-medium text-slate-700 shadow-sm">
+                        <div class="absolute right-4 top-4 rounded-lg bg-white px-4 py-2 text-base font-medium text-slate-700 shadow-sm">
                           <span
-                            class={`mr-2 inline-block h-3 w-3 rounded-full ${store.isActive ? "bg-emerald-400" : "bg-red-400"}`}
+                            class={`mr-2 inline-block h-3 w-3 rounded-lg ${store.isActive ? "bg-emerald-400" : "bg-red-400"}`}
                           />
                           {store.isActive ? "Buka" : "Tutup"}
                         </div>
                       </div>
 
                       <div class="p-6">
-                        <h2 class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+                        <h2 class=" font-semibold leading-tight tracking-[-0.05em] text-slate-900">
                           {store.name}
                         </h2>
-                        <p class="mt-3 text-lg leading-8 text-slate-700">
+                        <p class="mt-3  leading-8 text-slate-700">
                           {store.description ||
                             "Tersedia berbagai pilihan makanan enak untuk makan siang."}
                         </p>
@@ -130,7 +130,7 @@ function StoreSkeleton() {
   return (
     <div class="space-y-6">
       {[1, 2].map((item) => (
-        <div class="h-96 animate-pulse rounded-[2rem] bg-white/80" />
+        <div class="h-96 animate-pulse rounded-lg bg-white/80" />
       ))}
     </div>
   );

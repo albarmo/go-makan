@@ -12,10 +12,14 @@ interface ImageUploadProps {
 
 export default function ImageUpload(props: ImageUploadProps) {
   const auth = createAsync(() => getImageKitAuth());
-  const [preview, setPreview] = createSignal<string | null>(props.currentUrl ?? null);
+  const [preview, setPreview] = createSignal<string | null>(
+    props.currentUrl ?? null,
+  );
   const [uploading, setUploading] = createSignal(false);
   const [error, setError] = createSignal("");
-  const [uploadedUrl, setUploadedUrl] = createSignal<string>(props.currentUrl ?? "");
+  const [uploadedUrl, setUploadedUrl] = createSignal<string>(
+    props.currentUrl ?? "",
+  );
 
   const handleFileChange = async (e: Event) => {
     const input = e.currentTarget as HTMLInputElement;
@@ -39,7 +43,10 @@ export default function ImageUpload(props: ImageUploadProps) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("fileName", `${Date.now()}_${file.name.replace(/\s+/g, "_")}`);
+      formData.append(
+        "fileName",
+        `${Date.now()}_${file.name.replace(/\s+/g, "_")}`,
+      );
       formData.append("token", ikAuth.token);
       formData.append("expire", ikAuth.expire.toString());
       formData.append("signature", ikAuth.signature);
@@ -47,13 +54,16 @@ export default function ImageUpload(props: ImageUploadProps) {
         formData.append("folder", props.folder);
       }
 
-      const res = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${btoa(ikAuth.publicKey + ":")}`,
+      const res = await fetch(
+        "https://upload.imagekit.io/api/v1/files/upload",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${btoa(ikAuth.publicKey + ":")}`,
+          },
+          body: formData,
         },
-        body: formData,
-      });
+      );
 
       if (!res.ok) {
         const errText = await res.text();
@@ -94,19 +104,22 @@ export default function ImageUpload(props: ImageUploadProps) {
         when={preview()}
         fallback={
           <label
-            class={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+            class={`flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
               uploading()
                 ? "border-primary-300 bg-primary-50 cursor-not-allowed"
                 : "border-gray-300 bg-gray-50 hover:border-primary-400 hover:bg-primary-50"
             }`}
           >
-            <Show when={!uploading()} fallback={
-              <div class="flex flex-col items-center gap-2">
-                <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
-                <p class="text-sm text-primary-600">Mengupload...</p>
-              </div>
-            }>
-              <span class="text-xl">📷</span>
+            <Show
+              when={!uploading()}
+              fallback={
+                <div class="flex flex-col items-center gap-2">
+                  <div class="h-8 w-8 animate-spin rounded-lg border-4 border-primary-500 border-t-transparent" />
+                  <p class="text-sm text-primary-600">Mengupload...</p>
+                </div>
+              }
+            >
+              <span class="">📷</span>
               <p class="mt-2 text-sm font-medium text-gray-600">
                 Klik untuk upload foto
               </p>
@@ -127,16 +140,16 @@ export default function ImageUpload(props: ImageUploadProps) {
           <img
             src={preview()!}
             alt="Preview"
-            class="h-48 w-full rounded-xl object-cover"
+            class="h-48 w-full rounded-lg object-cover"
           />
           <Show when={uploading()}>
-            <div class="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40">
-              <div class="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent" />
+            <div class="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40">
+              <div class="h-8 w-8 animate-spin rounded-lg border-4 border-white border-t-transparent" />
             </div>
           </Show>
           <Show when={!uploading()}>
             <div class="absolute right-2 top-2 flex gap-2">
-              <label class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/90 text-gray-700 shadow hover:bg-white">
+              <label class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-white/90 text-gray-700 shadow hover:bg-white">
                 <span class="text-sm">✏️</span>
                 <input
                   type="file"
@@ -148,7 +161,7 @@ export default function ImageUpload(props: ImageUploadProps) {
               <button
                 type="button"
                 onClick={handleRemove}
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-red-500/90 text-white shadow hover:bg-red-600"
+                class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/90 text-white shadow hover:bg-red-600"
               >
                 <span class="text-sm">✕</span>
               </button>

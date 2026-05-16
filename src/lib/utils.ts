@@ -101,3 +101,19 @@ export function statusBadgeClass(status: string): string {
   };
   return classes[status] ?? "badge-submitted";
 }
+
+export function paymentStatusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    unpaid: "Belum Bayar",
+    paid: "Lunas",
+  };
+  return labels[status] ?? status;
+}
+
+export function paymentStatusBadgeClass(status: string): string {
+  const classes: Record<string, string> = {
+    unpaid: "badge-submitted",
+    paid: "badge-purchased",
+  };
+  return classes[status] ?? "badge-submitted";
+}

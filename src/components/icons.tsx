@@ -291,3 +291,85 @@ export function IconBike(props: { class?: string }) {
     </svg>
   );
 }
+
+export function IconNavigation(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m3 11 17-8-8 17-2-7-7-2Z" />
+    </svg>
+  );
+}
+
+export function IconStar(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.8 1-6.1L3.2 9.4l6.1-.9L12 3Z" />
+    </svg>
+  );
+}
+
+export function IconLeaf(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 20C6 20 3 17 3 12c0-5 4.5-8.5 14-9 1.5 9.5-2 17-9 17Z" />
+      <path d="M8 12c2 0 5-2 8-6" />
+    </svg>
+  );
+}
+
+export function IconCoffee(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 8h11v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z" />
+      <path d="M15 10h2a2 2 0 1 1 0 4h-2" />
+      <path d="M6 21h10" />
+    </svg>
+  );
+}
+
+export function IconBurgerDrink(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10h10" />
+      <path d="M5 14h8" />
+      <path d="M4 18h10" />
+      <path d="M4 10a5 5 0 0 1 10 0" />
+      <path d="M17 5h3l-1 14h-1L17 5Z" />
+      <path d="M16 8h5" />
+    </svg>
+  );
+}
+
+export function IconCake(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 11h10v7H7z" />
+      <path d="M5 18h14" />
+      <path d="M12 4v3" />
+      <path d="M9 7h6" />
+      <path d="M10 11V9a2 2 0 1 1 4 0v2" />
+    </svg>
+  );
+}
+
+export function IconPizza(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 7c4.5-2 11.5-2 16 0L12 21 4 7Z" />
+      <circle cx="9" cy="11" r="1" />
+      <circle cx="15" cy="10" r="1" />
+      <circle cx="12" cy="15" r="1" />
+    </svg>
+  );
+}
+
+export function IconGrid(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="4" width="6" height="6" />
+      <rect x="14" y="4" width="6" height="6" />
+      <rect x="4" y="14" width="6" height="6" />
+      <rect x="14" y="14" width="6" height="6" />
+    </svg>
+  );
+}

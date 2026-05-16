@@ -58,7 +58,7 @@
   }
 
   .tm-page-title {
-    @apply text-xl font-extrabold leading-[0.95] tracking-[-0.05em] text-slate-900;
+    @apply  font-extrabold leading-[0.95] tracking-[-0.05em] text-slate-900;
   }
 
   .tm-subtitle {
@@ -66,23 +66,23 @@
   }
 
   .tm-card {
-    @apply rounded-[2rem] border border-white bg-white;
+    @apply rounded-lg border border-white bg-white;
     box-shadow: var(--tm-shadow);
   }
 
   .tm-card-soft {
-    @apply rounded-[1.75rem] border bg-slate-50;
+    @apply rounded-lg border bg-slate-50;
     border-color: var(--tm-line);
   }
 
   .tm-panel {
-    @apply rounded-[1.5rem] border bg-white px-5 py-4;
+    @apply rounded-lg border bg-white px-5 py-4;
     border-color: rgba(10, 110, 147, 0.18);
     box-shadow: 0 4px 18px rgba(17, 91, 120, 0.06);
   }
 
   .tm-chip {
-    @apply inline-flex items-center rounded-full px-4 py-2 text-sm font-medium;
+    @apply inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium;
   }
 
   .tm-chip-accent {
@@ -106,7 +106,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex min-h-14 items-center justify-center rounded-[1.5rem] px-5 py-3 text-base font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-14 items-center justify-center rounded-lg px-5 py-3 text-base font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50;
     background: var(--tm-primary-strong);
     box-shadow: 0 10px 24px rgba(13, 120, 149, 0.18);
   }
@@ -116,26 +116,26 @@
   }
 
   .btn-accent {
-    @apply inline-flex min-h-14 items-center justify-center rounded-[1.5rem] px-5 py-3 text-base font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-14 items-center justify-center rounded-lg px-5 py-3 text-base font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50;
     background: #35bced;
     color: #0d5973;
   }
 
   .btn-secondary {
-    @apply inline-flex min-h-14 items-center justify-center rounded-[1.5rem] border px-5 py-3 text-base font-bold text-slate-700 transition-all disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-14 items-center justify-center rounded-lg border px-5 py-3 text-base font-bold text-slate-700 transition-all disabled:cursor-not-allowed disabled:opacity-50;
     background: #dfe5ea;
     border-color: #dfe5ea;
   }
 
   .btn-outline {
-    @apply inline-flex min-h-14 items-center justify-center rounded-[1.5rem] border px-5 py-3 text-base font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-14 items-center justify-center rounded-lg border px-5 py-3 text-base font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50;
     border-color: var(--tm-primary);
     color: var(--tm-primary);
     background: rgba(255, 255, 255, 0.7);
   }
 
   .input {
-    @apply min-h-14 w-full rounded-[1.4rem] border bg-white px-5 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none;
+    @apply min-h-14 w-full rounded-lg border bg-white px-5 py-3 text-base text-slate-900 placeholder:text-slate-400 focus:outline-none;
     border-color: rgba(10, 110, 147, 0.22);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 20px rgba(16, 82, 110, 0.04);
   }
@@ -148,7 +148,7 @@
   .badge-submitted,
   .badge-purchased,
   .badge-cancelled {
-    @apply inline-flex items-center rounded-full px-4 py-2 text-sm font-medium;
+    @apply inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium;
   }
 
   .badge-submitted {

@@ -4,8 +4,13 @@ import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
 import { IconCalendar, IconFilter, IconStore } from "~/components/icons";
-import { formatRupiah, statusLabel } from "~/lib/utils";
-import { getTodayOrders } from "~/server/orders";
+import {
+  formatRupiah,
+  paymentStatusBadgeClass,
+  paymentStatusLabel,
+  statusLabel,
+} from "~/lib/utils";
+import { getTodayOrders, type OrderListItem } from "~/server/orders";
 
 export const route = {
   load: () => getTodayOrders(),
@@ -20,7 +25,7 @@ export default function BuyerOrdersPage() {
 }
 
 function BuyerOrdersContent() {
-  const allOrders = createAsync(() => getTodayOrders());
+  const allOrders = createAsync<OrderListItem[]>(() => getTodayOrders());
   const [filter, setFilter] = createSignal<
     "all" | "submitted" | "purchased" | "cancelled"
   >("all");
@@ -41,21 +46,21 @@ function BuyerOrdersContent() {
           <div class="grid grid-cols-3 gap-3">
             <button
               type="button"
-              class="tm-panel flex items-center justify-between text-left text-lg text-slate-600"
+              class="tm-panel flex items-center justify-between text-left  text-slate-600"
             >
               <span>Date</span>
               <IconCalendar class="h-6 w-6 text-primary-700" />
             </button>
             <button
               type="button"
-              class="tm-panel flex items-center justify-between text-left text-lg text-slate-600"
+              class="tm-panel flex items-center justify-between text-left  text-slate-600"
             >
               <span>Store</span>
               <IconStore class="h-6 w-6 text-primary-700" />
             </button>
             <button
               type="button"
-              class="tm-panel flex items-center justify-between text-left text-lg text-slate-600"
+              class="tm-panel flex items-center justify-between text-left  text-slate-600"
             >
               <span>Status</span>
               <IconFilter class="h-6 w-6 text-primary-700" />
@@ -90,7 +95,7 @@ function BuyerOrdersContent() {
               when={filteredOrders().length > 0}
               fallback={
                 <div class="tm-card p-8">
-                  <p class="text-lg text-slate-600">
+                  <p class=" text-slate-600">
                     Belum ada titipan yang cocok dengan filter ini.
                   </p>
                 </div>
@@ -102,14 +107,14 @@ function BuyerOrdersContent() {
                     <div class="tm-card p-7">
                       <div class="mb-5 flex items-start justify-between gap-4">
                         <div class="flex items-start gap-4">
-                          <div class="flex h-14 w-14 items-center justify-center rounded-full bg-slate-200 text-lg font-bold text-primary-700">
+                          <div class="flex h-14 w-14 items-center justify-center rounded-lg bg-slate-200  font-bold text-primary-700">
                             {order.requesterName.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p class="text-xl font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+                            <p class=" font-semibold leading-tight tracking-[-0.05em] text-slate-900">
                               {order.requesterName}
                             </p>
-                            <p class="text-lg leading-8 text-primary-700">
+                            <p class=" leading-8 text-primary-700">
                               {order.storeName}
                             </p>
                           </div>
@@ -117,7 +122,7 @@ function BuyerOrdersContent() {
                         <span
                           class={
                             order.status === "purchased"
-                              ? "badge-purchased"
+                              ? paymentStatusBadgeClass(order.paymentStatus)
                               : order.status === "cancelled"
                                 ? "badge-cancelled"
                                 : "badge-submitted"
@@ -125,21 +130,23 @@ function BuyerOrdersContent() {
                         >
                           {order.status === "submitted"
                             ? "Pending"
-                            : statusLabel(order.status)}
+                            : order.status === "purchased"
+                              ? paymentStatusLabel(order.paymentStatus)
+                              : statusLabel(order.status)}
                         </span>
                       </div>
 
                       <div class="tm-card-soft mb-6 px-5 py-5">
-                        <p class="text-lg leading-9 text-slate-700">
+                        <p class=" leading-9 text-slate-700">
                           {order.itemSummary}
                         </p>
                       </div>
 
                       <div class="mb-6 flex items-center justify-between gap-4">
-                        <p class="text-xl font-medium text-primary-700">
+                        <p class=" font-medium text-primary-700">
                           Total Tagihan
                         </p>
-                        <p class="text-xl font-bold tracking-[-0.05em] text-slate-900">
+                        <p class=" font-bold tracking-[-0.05em] text-slate-900">
                           {formatRupiah(order.totalAmount)}
                         </p>
                       </div>
@@ -150,7 +157,7 @@ function BuyerOrdersContent() {
                           <div class="flex justify-end">
                             <A
                               href={`/orders/${order.id}`}
-                              class="text-xl font-semibold text-primary-700"
+                              class=" font-semibold text-primary-700"
                             >
                               Lihat Detail
                             </A>
@@ -187,7 +194,7 @@ function FilterChip(props: {
     <button
       type="button"
       onClick={props.onClick}
-      class={`shrink-0 rounded-full px-5 py-3 text-base font-semibold transition-all ${
+      class={`shrink-0 rounded-lg px-5 py-3 text-base font-semibold transition-all ${
         props.active
           ? "bg-[#35bced] text-primary-700"
           : "bg-white text-slate-500 shadow-sm"
@@ -202,7 +209,7 @@ function OrdersSkeleton() {
   return (
     <div class="space-y-6">
       {[1, 2].map((item) => (
-        <div class="h-72 animate-pulse rounded-[2rem] bg-white/80" />
+        <div class="h-72 animate-pulse rounded-lg bg-white/80" />
       ))}
     </div>
   );

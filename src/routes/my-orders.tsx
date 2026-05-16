@@ -8,9 +8,11 @@ import { useUser } from "~/lib/user-context";
 import {
   formatRelativeOrderTime,
   formatRupiah,
+  paymentStatusBadgeClass,
+  paymentStatusLabel,
   statusLabel,
 } from "~/lib/utils";
-import { getMyOrders } from "~/server/orders";
+import { getMyOrders, type OrderListItem } from "~/server/orders";
 
 export default function MyOrdersPage() {
   return (
@@ -22,7 +24,9 @@ export default function MyOrdersPage() {
 
 function MyOrdersContent() {
   const { user } = useUser();
-  const myOrders = createAsync(() => getMyOrders(user()?.name ?? ""));
+  const myOrders = createAsync<OrderListItem[]>(() =>
+    getMyOrders(user()?.name ?? ""),
+  );
   const [filter, setFilter] = createSignal<"all" | "submitted">("all");
 
   const visibleOrders = createMemo(() => {
@@ -41,7 +45,7 @@ function MyOrdersContent() {
           <div class="flex gap-3 overflow-x-auto pb-1">
             <button
               type="button"
-              class="tm-panel flex shrink-0 items-center gap-3 px-5 py-4 text-lg font-semibold text-slate-800"
+              class="tm-panel flex shrink-0 items-center gap-3 px-5 py-4  font-semibold text-slate-800"
             >
               <IconCalendar class="h-6 w-6 text-slate-700" />
               Pilih Tanggal
@@ -63,7 +67,7 @@ function MyOrdersContent() {
               when={visibleOrders().length > 0}
               fallback={
                 <div class="tm-card p-8">
-                  <p class="text-lg text-slate-600">
+                  <p class=" text-slate-600">
                     Belum ada order untuk ditampilkan.
                   </p>
                 </div>
@@ -75,14 +79,14 @@ function MyOrdersContent() {
                     <div class="tm-card p-7">
                       <div class="mb-5 flex items-start justify-between gap-4">
                         <div class="flex items-start gap-4">
-                          <div class="flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-slate-200 text-xl">
+                          <div class="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-200 ">
                             {order.storeName.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+                            <p class=" font-semibold leading-tight tracking-[-0.05em] text-slate-900">
                               {order.storeName}
                             </p>
-                            <p class="mt-2 text-lg text-slate-500">
+                            <p class="mt-2  text-slate-500">
                               {formatRelativeOrderTime(order.createdAt)}
                             </p>
                           </div>
@@ -90,7 +94,7 @@ function MyOrdersContent() {
                         <span
                           class={
                             order.status === "purchased"
-                              ? "badge-submitted"
+                              ? paymentStatusBadgeClass(order.paymentStatus)
                               : order.status === "cancelled"
                                 ? "badge-cancelled"
                                 : "badge-submitted"
@@ -98,17 +102,19 @@ function MyOrdersContent() {
                         >
                           {order.status === "submitted"
                             ? "Belum Dibeli"
-                            : statusLabel(order.status)}
+                            : order.status === "purchased"
+                              ? paymentStatusLabel(order.paymentStatus)
+                              : statusLabel(order.status)}
                         </span>
                       </div>
 
                       <div class="tm-divider mb-5" />
 
                       <div class="mb-6 flex items-end justify-between gap-4">
-                        <p class="max-w-[12rem] text-xl leading-8 text-slate-800">
-                          {order.itemSummary}
+                        <p class="max-w-[12rem]  leading-8 text-slate-800">
+                          {order?.itemSummary}
                         </p>
-                        <p class="text-xl font-bold tracking-[-0.06em] text-primary-700">
+                        <p class=" font-bold tracking-[-0.06em] text-primary-700">
                           {formatRupiah(order.totalAmount)}
                         </p>
                       </div>
@@ -154,7 +160,7 @@ function OrderFilter(props: {
     <button
       type="button"
       onClick={props.onClick}
-      class={`shrink-0 rounded-full px-8 py-4 text-lg font-semibold transition-all ${
+      class={`shrink-0 rounded-lg px-8 py-4 text-sm font-semibold transition-all ${
         props.active
           ? "bg-[#35bced] text-primary-700"
           : "bg-slate-200 text-slate-700"
@@ -169,7 +175,7 @@ function MyOrdersSkeleton() {
   return (
     <div class="space-y-6">
       {[1, 2, 3].map((item) => (
-        <div class="h-72 animate-pulse rounded-[2rem] bg-white/80" />
+        <div class="h-72 animate-pulse rounded-lg bg-white/80" />
       ))}
     </div>
   );

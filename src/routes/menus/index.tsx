@@ -53,7 +53,7 @@ function MenusContent() {
             <IconSearch class="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-primary-700" />
             <input
               type="search"
-              class="input pl-16 text-lg"
+              class="input pl-16 "
               placeholder="Cari makanan..."
               value={search()}
               onInput={(e) => setSearch(e.currentTarget.value)}
@@ -82,7 +82,7 @@ function MenusContent() {
               when={filteredMenus().length > 0}
               fallback={
                 <div class="tm-card p-8">
-                  <p class="text-lg text-slate-600">
+                  <p class=" text-slate-600">
                     Menu belum tersedia untuk filter ini.
                   </p>
                 </div>
@@ -95,23 +95,21 @@ function MenusContent() {
                       <Show
                         when={menu.imageUrl}
                         fallback={
-                          <div class="mb-5 h-48 rounded-[1.5rem] bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100" />
+                          <div class="mb-5 h-48 rounded-lg bg-gradient-to-br from-slate-100 via-slate-200 to-slate-100" />
                         }
                       >
                         <img
                           src={menu.imageUrl!}
                           alt={menu.name}
-                          class="mb-5 h-48 w-full rounded-[1.5rem] object-cover"
+                          class="mb-5 h-48 w-full rounded-lg object-cover"
                         />
                       </Show>
                       <div class="mb-4 flex items-start justify-between gap-4">
                         <div>
-                          <p class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+                          <p class=" font-semibold leading-tight tracking-[-0.05em] text-slate-900">
                             {menu.name}
                           </p>
-                          <p class="mt-2 text-lg text-primary-700">
-                            {menu.storeName}
-                          </p>
+                          <p class="mt-2  text-primary-700">{menu.storeName}</p>
                         </div>
                         <span
                           class={
@@ -124,7 +122,7 @@ function MenusContent() {
                         </span>
                       </div>
 
-                      <p class="mb-5 text-lg leading-8 text-slate-700">
+                      <p class="mb-5  leading-8 text-slate-700">
                         {menu.description ||
                           "Menu favorit yang cocok untuk makan siang kantor."}
                       </p>
@@ -132,7 +130,7 @@ function MenusContent() {
                       <div class="tm-divider mb-5" />
 
                       <div class="flex items-end justify-between gap-4">
-                        <p class="text-xl font-bold tracking-[-0.06em] text-primary-700">
+                        <p class=" font-bold tracking-[-0.06em] text-primary-700">
                           {formatRupiah(menu.price)}
                         </p>
                         <Show
@@ -140,7 +138,7 @@ function MenusContent() {
                           fallback={
                             <button
                               type="button"
-                              class="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-slate-200 text-slate-500"
+                              class="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-200 text-slate-500"
                             >
                               <IconPlus class="h-8 w-8" />
                             </button>
@@ -148,7 +146,7 @@ function MenusContent() {
                         >
                           <A
                             href={`/orders/new`}
-                            class="inline-flex items-center gap-3 rounded-[1.5rem] bg-primary-700 px-7 py-5 text-lg font-semibold text-white"
+                            class="inline-flex items-center gap-3 rounded-lg bg-primary-700 px-7 py-5  font-semibold text-white"
                           >
                             <IconPlus class="h-7 w-7" />
                             Tambah Menu
@@ -176,7 +174,7 @@ function StorePill(props: {
     <button
       type="button"
       onClick={props.onClick}
-      class={`shrink-0 rounded-full px-6 py-4 text-lg font-semibold transition-all ${
+      class={`shrink-0 rounded-lg px-6 py-4  font-semibold transition-all ${
         props.active
           ? "bg-primary-700 text-white"
           : "bg-slate-200 text-slate-700"
@@ -191,7 +189,7 @@ function MenuSkeleton() {
   return (
     <div class="space-y-6">
       {[1, 2, 3].map((item) => (
-        <div class="h-72 animate-pulse rounded-[2rem] bg-white/80" />
+        <div class="h-72 animate-pulse rounded-lg bg-white/80" />
       ))}
     </div>
   );

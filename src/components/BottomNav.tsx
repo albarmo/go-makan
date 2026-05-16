@@ -3,33 +3,32 @@ import { Component, For } from "solid-js";
 import { useUser } from "~/lib/user-context";
 import {
   IconHome,
-  IconStore,
-  IconPlus,
-  IconList,
-  IconClipboard,
-  IconChart,
+  IconUtensilsCrossed,
   IconWallet,
-  IconMenu,
+  IconUser,
+  IconChart,
+  IconList,
 } from "./icons";
 
 interface NavItem {
   href: string;
   label: string;
   Icon: Component<{ class?: string }>;
+  end?: boolean;
 }
 
 const pemesanNav: NavItem[] = [
-  { href: "/", label: "Beranda", Icon: IconHome },
-  { href: "/stores", label: "Toko", Icon: IconStore },
-  { href: "/orders/new", label: "Titip", Icon: IconPlus },
-  { href: "/my-orders", label: "Pesananku", Icon: IconList },
+  { href: "/", label: "Beranda", Icon: IconHome, end: true },
+  { href: "/my-orders", label: "Pesanan", Icon: IconUtensilsCrossed },
+  { href: "/orders/new", label: "Titip", Icon: IconList },
+  { href: "/role", label: "Akun", Icon: IconUser },
 ];
 
 const pembeliNav: NavItem[] = [
-  { href: "/buyer/orders", label: "Semua Order", Icon: IconClipboard },
-  { href: "/buyer/recap", label: "Rekap", Icon: IconChart },
+  { href: "/buyer/orders", label: "Order", Icon: IconHome, end: true },
+  { href: "/buyer/recap", label: "Rekap", Icon: IconUtensilsCrossed },
   { href: "/buyer/settlement", label: "Tagihan", Icon: IconWallet },
-  { href: "/menus", label: "Menu", Icon: IconMenu },
+  { href: "/role", label: "Akun", Icon: IconUser },
 ];
 
 export default function BottomNav() {
@@ -42,18 +41,20 @@ export default function BottomNav() {
   };
 
   return (
-    <nav class="fixed bottom-0 left-0 right-0 z-50 border-t border-gray-200 bg-white">
-      <div class="mx-auto flex max-w-lg">
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <div class="mx-auto flex max-w-lg items-end pb-safe">
         <For each={navItems()}>
           {(item) => (
             <A
               href={item.href}
-              class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-gray-500 transition-colors"
-              activeClass="!text-primary-600"
-              end={item.href === "/"}
+              end={item.end}
+              class="flex flex-1 flex-col items-center gap-0.5 py-2 text-gray-400 transition-colors"
+              activeClass="!text-primary-600 [&>div]:bg-primary-100"
             >
-              <item.Icon class="h-6 w-6" />
-              <span class="text-xs font-medium">{item.label}</span>
+              <div class="flex h-8 w-14 items-center justify-center rounded-full transition-colors">
+                <item.Icon class="h-5 w-5" />
+              </div>
+              <span class="text-[10px] font-medium">{item.label}</span>
             </A>
           )}
         </For>

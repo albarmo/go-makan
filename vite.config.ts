@@ -12,7 +12,12 @@ export default defineConfig(({ mode }) => {
     }
   });
 
+  const isVercel = process.env.VERCEL === "1";
+
   return {
-    plugins: [solidStart(), nitro()],
+    plugins: [
+      solidStart(),
+      nitro(isVercel ? { preset: "vercel" } : {}),
+    ],
   };
 });

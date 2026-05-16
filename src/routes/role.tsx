@@ -2,6 +2,7 @@ import { createSignal, Show } from "solid-js";
 import { useNavigate } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
 import { useUser, Role } from "~/lib/user-context";
+import { IconCheckCircle, IconCircle, IconArrowRight } from "~/components/icons";
 
 export default function RolePage() {
   const navigate = useNavigate();
@@ -17,11 +18,11 @@ export default function RolePage() {
     const role = selectedRole();
     const n = name().trim();
     if (!role) {
-      setError("Pilih role terlebih dahulu");
+      setError("Pilih peranmu terlebih dahulu");
       return;
     }
     if (!n) {
-      setError("Nama tidak boleh kosong");
+      setError("Nama panggilan tidak boleh kosong");
       return;
     }
     setUser({ role, name: n });
@@ -30,86 +31,121 @@ export default function RolePage() {
 
   return (
     <>
-      <Title>Pilih Role - Titip Makan</Title>
-      <div class="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-primary-50 to-white px-4 py-12">
-        <div class="w-full max-w-sm">
-          {/* Logo */}
-          <div class="mb-8 text-center">
-            <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-primary-500 shadow-lg">
-              <span class="text-4xl">🍱</span>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900">Titip Makan</h1>
-            <p class="mt-1 text-sm text-gray-500">
-              Nitip beli makan siang ke rekan kerja
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} class="space-y-5">
-            {/* Role selection */}
-            <div>
-              <p class="mb-3 text-sm font-semibold text-gray-700">
-                Saya adalah...
-              </p>
-              <div class="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("pemesan")}
-                  class={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition-all ${
-                    selectedRole() === "pemesan"
-                      ? "border-primary-500 bg-primary-50 text-primary-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-                  }`}
-                >
-                  <span class="text-3xl">🙋</span>
-                  <div>
-                    <p class="font-semibold">Yang Nitip</p>
-                    <p class="text-xs opacity-70">Mau titip beli</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRole("pembeli")}
-                  class={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 transition-all ${
-                    selectedRole() === "pembeli"
-                      ? "border-primary-500 bg-primary-50 text-primary-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
-                  }`}
-                >
-                  <span class="text-3xl">🛍️</span>
-                  <div>
-                    <p class="font-semibold">Yang Belikan</p>
-                    <p class="text-xs opacity-70">Mau ke toko</p>
-                  </div>
-                </button>
+      <Title>Mulai - Titip Makan</Title>
+      <div class="flex min-h-screen flex-col bg-slate-100">
+        {/* Top bar */}
+        <div class="bg-primary-700 px-4 pb-8 pt-12">
+          <div class="mx-auto max-w-lg">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                <span class="text-xl">🍱</span>
+              </div>
+              <div>
+                <h1 class="text-lg font-bold text-white">Titip Makan</h1>
+                <p class="text-xs text-primary-200">Nitip beli makan siang</p>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Name input */}
-            <div>
-              <label class="mb-1.5 block text-sm font-semibold text-gray-700">
-                Nama Kamu
-              </label>
-              <input
-                type="text"
-                class="input"
-                placeholder="Contoh: Budi Santoso"
-                value={name()}
-                onInput={(e) => {
-                  setName(e.currentTarget.value);
-                  setError("");
-                }}
-                maxLength={100}
-              />
+        {/* Content card that overlaps the top bar */}
+        <div class="mx-auto w-full max-w-lg flex-1 -mt-4 px-4">
+          <div class="rounded-2xl bg-white shadow-sm">
+            <div class="p-5">
+              <h2 class="text-base font-bold text-gray-900">Siapa kamu?</h2>
+              <p class="mt-0.5 text-sm text-gray-500">Pilih peranmu untuk memulai</p>
             </div>
 
-            <Show when={error()}>
-              <p class="text-sm text-red-600">{error()}</p>
-            </Show>
+            <form onSubmit={handleSubmit}>
+              {/* Name input */}
+              <div class="border-t border-gray-100 px-5 py-4">
+                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Nama Panggilan
+                </label>
+                <input
+                  type="text"
+                  class="input"
+                  placeholder="Contoh: Budi"
+                  value={name()}
+                  onInput={(e) => {
+                    setName(e.currentTarget.value);
+                    setError("");
+                  }}
+                  maxLength={100}
+                />
+              </div>
 
-            <button type="submit" class="btn-primary w-full">
-              Mulai
-            </button>
-          </form>
+              {/* Role options */}
+              <div class="border-t border-gray-100 px-5 py-4">
+                <label class="mb-3 block text-xs font-semibold uppercase tracking-wide text-gray-400">
+                  Peran
+                </label>
+                <div class="space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedRole("pemesan"); setError(""); }}
+                    class={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${
+                      selectedRole() === "pemesan"
+                        ? "border-primary-500 bg-primary-50"
+                        : "border-gray-100 bg-gray-50 hover:border-gray-200"
+                    }`}
+                  >
+                    <span class="text-2xl">🙋</span>
+                    <div class="flex-1">
+                      <p class={`font-semibold ${selectedRole() === "pemesan" ? "text-primary-700" : "text-gray-800"}`}>
+                        Saya Nitip Makan
+                      </p>
+                      <p class="text-xs text-gray-400">Mau titip beli makan siang</p>
+                    </div>
+                    <Show
+                      when={selectedRole() === "pemesan"}
+                      fallback={<IconCircle class="h-5 w-5 text-gray-300" />}
+                    >
+                      <IconCheckCircle class="h-5 w-5 text-primary-500" />
+                    </Show>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedRole("pembeli"); setError(""); }}
+                    class={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${
+                      selectedRole() === "pembeli"
+                        ? "border-primary-500 bg-primary-50"
+                        : "border-gray-100 bg-gray-50 hover:border-gray-200"
+                    }`}
+                  >
+                    <span class="text-2xl">🛍️</span>
+                    <div class="flex-1">
+                      <p class={`font-semibold ${selectedRole() === "pembeli" ? "text-primary-700" : "text-gray-800"}`}>
+                        Saya Yang Belikan
+                      </p>
+                      <p class="text-xs text-gray-400">Mau ke toko belikan teman</p>
+                    </div>
+                    <Show
+                      when={selectedRole() === "pembeli"}
+                      fallback={<IconCircle class="h-5 w-5 text-gray-300" />}
+                    >
+                      <IconCheckCircle class="h-5 w-5 text-primary-500" />
+                    </Show>
+                  </button>
+                </div>
+              </div>
+
+              <Show when={error()}>
+                <p class="px-5 pb-2 text-sm text-red-500">{error()}</p>
+              </Show>
+
+              <div class="border-t border-gray-100 p-5">
+                <button
+                  type="submit"
+                  class="btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  Mulai
+                  <IconArrowRight class="h-4 w-4" />
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </>

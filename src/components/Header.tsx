@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import { Show } from "solid-js";
 import { useUser } from "~/lib/user-context";
-import { IconChevronLeft, IconLogout } from "./icons";
+import { IconChevronLeft } from "./icons";
 
 interface HeaderProps {
   title: string;
@@ -11,50 +11,33 @@ interface HeaderProps {
 
 export default function Header(props: HeaderProps) {
   const navigate = useNavigate();
-  const { user, clearUser } = useUser();
-
-  const handleLogout = () => {
-    if (confirm("Ganti role/nama?")) {
-      clearUser();
-      navigate("/role");
-    }
-  };
+  const { user } = useUser();
 
   return (
-    <header class="sticky top-0 z-40 border-b border-gray-200 bg-white">
-      <div class="mx-auto flex max-w-lg items-center gap-3 px-4 py-3">
+    <header class="sticky top-0 z-40 bg-primary-700 text-white">
+      <div class="mx-auto flex max-w-lg items-center gap-3 px-4 py-3.5">
         <Show when={props.showBack}>
           <button
             onClick={() => navigate(-1)}
-            class="flex h-9 w-9 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 active:bg-gray-200"
+            class="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 active:bg-white/40"
             aria-label="Kembali"
           >
-            <IconChevronLeft class="h-5 w-5" />
+            <IconChevronLeft class="h-4 w-4" />
           </button>
         </Show>
 
         <div class="flex-1 min-w-0">
-          <h1 class="truncate text-base font-semibold text-gray-900">
+          <h1 class="truncate text-base font-bold tracking-tight">
             {props.title}
           </h1>
           <Show when={user() && props.showUser !== false}>
-            <p class="truncate text-xs text-gray-500">
+            <p class="truncate text-xs text-primary-200">
               {user()?.role === "pemesan" ? "Yang Nitip" : "Yang Belikan"}
               {" · "}
-              <span class="font-medium text-primary-600">{user()?.name}</span>
+              <span class="font-semibold text-white">{user()?.name}</span>
             </p>
           </Show>
         </div>
-
-        <Show when={user() && props.showUser !== false}>
-          <button
-            onClick={handleLogout}
-            class="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 active:bg-gray-200"
-            aria-label="Ganti pengguna"
-          >
-            <IconLogout class="h-5 w-5" />
-          </button>
-        </Show>
       </div>
     </header>
   );

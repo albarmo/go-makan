@@ -6,6 +6,7 @@ import RoleGuard from "~/components/RoleGuard";
 import { useUser } from "~/lib/user-context";
 import { getOrderById, cancelOrderAction, markPurchasedAction } from "~/server/orders";
 import { formatRupiah, formatDateTime, statusBadgeClass, statusLabel } from "~/lib/utils";
+import { IconClock } from "~/components/icons";
 
 export const route = {
   load: ({ params }: { params: { id: string } }) =>
@@ -84,85 +85,80 @@ function OrderDetailContent() {
             }
           >
             {(o) => (
-              <div class="space-y-4">
-                {/* Order info card */}
-                <div class="card p-4 space-y-3">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <p class="text-xs text-gray-400">Order #{o().id}</p>
-                      <h2 class="font-semibold text-gray-900">{o().storeName}</h2>
+              <div class="space-y-3">
+                {/* Status banner */}
+                <div class={`rounded-2xl p-4 ${
+                  o().status === "purchased"
+                    ? "bg-emerald-600"
+                    : o().status === "cancelled"
+                    ? "bg-red-500"
+                    : "bg-primary-700"
+                }`}>
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                      <span class="text-xl">
+                        {o().status === "purchased" ? "✅" : o().status === "cancelled" ? "❌" : "⏳"}
+                      </span>
                     </div>
-                    <span class={statusBadgeClass(o().status)}>
-                      {statusLabel(o().status)}
-                    </span>
+                    <div>
+                      <p class="font-bold text-white">{statusLabel(o().status)}</p>
+                      <p class="text-xs text-white/70">Order #{o().id} · {o().storeName}</p>
+                    </div>
                   </div>
-
-                  <div class="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p class="text-xs text-gray-400">Yang Nitip</p>
-                      <p class="font-medium text-gray-900">{o().requesterName}</p>
-                    </div>
-                    <Show when={o().buyerName}>
-                      <div>
-                        <p class="text-xs text-gray-400">Yang Belikan</p>
-                        <p class="font-medium text-gray-900">{o().buyerName}</p>
-                      </div>
-                    </Show>
-                    <div>
-                      <p class="text-xs text-gray-400">Dibuat</p>
-                      <p class="font-medium text-gray-900">
-                        {formatDateTime(o().createdAt)}
-                      </p>
-                    </div>
-                    <Show when={o().purchasedAt}>
-                      <div>
-                        <p class="text-xs text-gray-400">Dibeli</p>
-                        <p class="font-medium text-gray-900">
-                          {formatDateTime(o().purchasedAt!)}
-                        </p>
-                      </div>
-                    </Show>
-                  </div>
-
-                  <Show when={o().notes}>
-                    <div class="rounded-lg bg-gray-50 p-3">
-                      <p class="text-xs font-semibold text-gray-500">Catatan Order</p>
-                      <p class="mt-0.5 text-sm text-gray-700">{o().notes}</p>
-                    </div>
-                  </Show>
-
-                  <Show when={o().cancellationReason}>
-                    <div class="rounded-lg bg-red-50 p-3">
-                      <p class="text-xs font-semibold text-red-500">Alasan Dibatalkan</p>
-                      <p class="mt-0.5 text-sm text-red-700">{o().cancellationReason}</p>
-                    </div>
-                  </Show>
                 </div>
+
+                {/* Order info */}
+                <div class="card overflow-hidden">
+                  <div class="divide-y divide-gray-50">
+                    <InfoRow label="Yang Nitip" value={o().requesterName} />
+                    <Show when={o().buyerName}>
+                      <InfoRow label="Yang Belikan" value={o().buyerName!} />
+                    </Show>
+                    <InfoRow label="Toko" value={o().storeName} />
+                    <div class="flex items-center gap-3 px-4 py-3">
+                      <p class="w-28 shrink-0 text-xs text-gray-400">Tanggal</p>
+                      <div class="flex items-center gap-1.5">
+                        <IconClock class="h-3.5 w-3.5 text-gray-400" />
+                        <p class="text-sm font-medium text-gray-800">{formatDateTime(o().createdAt)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Show when={o().notes}>
+                  <div class="rounded-xl bg-amber-50 px-4 py-3">
+                    <p class="text-xs font-semibold text-amber-700">Catatan Order</p>
+                    <p class="mt-0.5 text-sm text-amber-800">{o().notes}</p>
+                  </div>
+                </Show>
+
+                <Show when={o().cancellationReason}>
+                  <div class="rounded-xl bg-red-50 px-4 py-3">
+                    <p class="text-xs font-semibold text-red-600">Alasan Dibatalkan</p>
+                    <p class="mt-0.5 text-sm text-red-700">{o().cancellationReason}</p>
+                  </div>
+                </Show>
 
                 {/* Order items */}
                 <div class="card overflow-hidden">
-                  <div class="border-b border-gray-100 p-4">
-                    <h3 class="font-semibold text-gray-900">Daftar Item</h3>
+                  <div class="border-b border-gray-100 px-4 py-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Daftar Menu</p>
                   </div>
                   <div class="divide-y divide-gray-50">
                     <For each={o().items}>
                       {(item) => (
-                        <div class="p-4">
+                        <div class="px-4 py-3">
                           <div class="flex items-start justify-between gap-2">
                             <div class="flex-1">
-                              <p class="font-medium text-gray-900">
-                                {item.menuNameSnapshot}
-                              </p>
-                              <p class="text-sm text-gray-500">
+                              <p class="font-medium text-gray-900">{item.menuNameSnapshot}</p>
+                              <p class="text-xs text-gray-400">
                                 {formatRupiah(item.priceSnapshot)} × {item.quantity}
                               </p>
                               <Show when={item.notes}>
-                                <p class="mt-0.5 text-xs text-gray-400 italic">
-                                  Catatan: {item.notes}
-                                </p>
+                                <p class="mt-0.5 text-xs italic text-gray-400">"{item.notes}"</p>
                               </Show>
                             </div>
-                            <p class="font-semibold text-primary-600 shrink-0">
+                            <p class="shrink-0 font-semibold text-primary-600">
                               {formatRupiah(item.subtotal)}
                             </p>
                           </div>
@@ -170,27 +166,22 @@ function OrderDetailContent() {
                       )}
                     </For>
                   </div>
-                  <div class="border-t border-gray-100 p-4">
-                    <div class="flex justify-between">
-                      <span class="font-bold text-gray-900">Total</span>
-                      <span class="text-lg font-bold text-primary-600">
-                        {formatRupiah(o().totalAmount)}
-                      </span>
-                    </div>
+                  <div class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
+                    <span class="font-bold text-gray-900">Total</span>
+                    <span class="text-lg font-bold text-primary-600">
+                      {formatRupiah(o().totalAmount)}
+                    </span>
                   </div>
                 </div>
 
                 {/* Actions */}
                 <Show when={o().status === "submitted"}>
-                  {/* Pemesan: bisa batalkan sendiri */}
                   <Show when={isPemesan()}>
                     <Show
                       when={!showCancelForm()}
                       fallback={
                         <div class="card p-4 space-y-3">
-                          <p class="text-sm font-semibold text-gray-700">
-                            Alasan pembatalan (opsional)
-                          </p>
+                          <p class="text-sm font-semibold text-gray-700">Alasan pembatalan (opsional)</p>
                           <textarea
                             class="input resize-none text-sm"
                             rows="2"
@@ -199,77 +190,49 @@ function OrderDetailContent() {
                             onInput={(e) => setCancelReason(e.currentTarget.value)}
                           />
                           <div class="grid grid-cols-2 gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setShowCancelForm(false)}
-                              class="btn-secondary"
-                            >
+                            <button type="button" onClick={() => setShowCancelForm(false)} class="btn-secondary">
                               Batal
                             </button>
-                            <button
-                              type="button"
-                              onClick={handleCancel}
-                              disabled={submitting()}
-                              class="btn-danger"
-                            >
-                              {submitting() ? "..." : "Batalkan Order"}
+                            <button type="button" onClick={handleCancel} disabled={submitting()} class="btn-danger">
+                              {submitting() ? "..." : "Batalkan"}
                             </button>
                           </div>
                         </div>
                       }
                     >
-                      <button
-                        type="button"
-                        onClick={() => setShowCancelForm(true)}
-                        class="btn-secondary w-full"
-                      >
+                      <button type="button" onClick={() => setShowCancelForm(true)} class="btn-secondary w-full">
                         Batalkan Order
                       </button>
                     </Show>
                   </Show>
 
-                  {/* Pembeli: bisa mark purchased atau batalkan */}
                   <Show when={isPembeli()}>
-                    <div class="space-y-3">
+                    <div class="space-y-2">
                       <button
                         type="button"
                         onClick={handleMarkPurchased}
                         disabled={submitting()}
                         class="btn-primary w-full"
                       >
-                        {submitting() ? "..." : "Tandai Sudah Dibeli"}
+                        {submitting() ? "..." : "Tandai Sudah Dibeli ✓"}
                       </button>
-
                       <Show
                         when={!showCancelForm()}
                         fallback={
                           <div class="card p-4 space-y-3">
-                            <p class="text-sm font-semibold text-gray-700">
-                              Alasan pembatalan
-                            </p>
+                            <p class="text-sm font-semibold text-gray-700">Alasan pembatalan</p>
                             <textarea
                               class="input resize-none text-sm"
                               rows="2"
                               placeholder="Contoh: stok habis, toko tutup"
                               value={cancelReason()}
-                              onInput={(e) =>
-                                setCancelReason(e.currentTarget.value)
-                              }
+                              onInput={(e) => setCancelReason(e.currentTarget.value)}
                             />
                             <div class="grid grid-cols-2 gap-3">
-                              <button
-                                type="button"
-                                onClick={() => setShowCancelForm(false)}
-                                class="btn-secondary"
-                              >
-                                Batal
+                              <button type="button" onClick={() => setShowCancelForm(false)} class="btn-secondary">
+                                Kembali
                               </button>
-                              <button
-                                type="button"
-                                onClick={handleCancel}
-                                disabled={submitting()}
-                                class="btn-danger"
-                              >
+                              <button type="button" onClick={handleCancel} disabled={submitting()} class="btn-danger">
                                 {submitting() ? "..." : "Batalkan"}
                               </button>
                             </div>
@@ -279,9 +242,9 @@ function OrderDetailContent() {
                         <button
                           type="button"
                           onClick={() => setShowCancelForm(true)}
-                          class="btn-secondary w-full text-red-600"
+                          class="btn-secondary w-full !text-red-500"
                         >
-                          Batalkan (Item Tidak Tersedia)
+                          Item Tidak Tersedia
                         </button>
                       </Show>
                     </div>
@@ -293,5 +256,14 @@ function OrderDetailContent() {
         </Suspense>
       </Layout>
     </>
+  );
+}
+
+function InfoRow(props: { label: string; value: string }) {
+  return (
+    <div class="flex items-center gap-3 px-4 py-3">
+      <p class="w-28 shrink-0 text-xs text-gray-400">{props.label}</p>
+      <p class="text-sm font-semibold text-gray-800">{props.value}</p>
+    </div>
   );
 }

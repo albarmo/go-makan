@@ -14,7 +14,7 @@ const Layout: ParentComponent<LayoutProps> = (props) => {
   const { user } = useUser();
 
   return (
-    <div class="min-h-screen bg-gray-50">
+    <div class="min-h-screen bg-slate-100">
       <Header
         title={props.title}
         showBack={props.showBack}

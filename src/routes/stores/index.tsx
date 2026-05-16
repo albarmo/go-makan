@@ -1,11 +1,10 @@
-import { createAsync } from "@solidjs/router";
-import { createSignal, For, Show, Suspense } from "solid-js";
 import { Title } from "@solidjs/meta";
-import { A } from "@solidjs/router";
+import { A, createAsync } from "@solidjs/router";
+import { createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
-import { getStores, toggleStoreAction } from "~/server/stores";
-import { IconSearch, IconPlus, IconEdit, IconMapPin, IconPhone } from "~/components/icons";
+import { IconMapPin, IconPlus, IconSearch } from "~/components/icons";
+import { getStores } from "~/server/stores";
 
 export const route = {
   load: () => getStores(),
@@ -23,154 +22,116 @@ function StoresContent() {
   const stores = createAsync(() => getStores());
   const [search, setSearch] = createSignal("");
 
-  const filtered = () => {
-    const q = search().toLowerCase();
+  const filteredStores = () => {
+    const query = search().toLowerCase();
     return (stores() ?? []).filter(
-      (s) =>
-        !q ||
-        s.name.toLowerCase().includes(q) ||
-        (s.description ?? "").toLowerCase().includes(q)
+      (store) =>
+        !query ||
+        store.name.toLowerCase().includes(query) ||
+        (store.description ?? "").toLowerCase().includes(query),
     );
   };
 
   return (
     <>
-      <Title>Toko - Titip Makan</Title>
-      <Layout title="Daftar Toko">
-        {/* Search */}
-        <div class="relative mb-4">
-          <IconSearch class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            class="input pl-9"
-            placeholder="Cari toko..."
-            value={search()}
-            onInput={(e) => setSearch(e.currentTarget.value)}
-          />
-        </div>
+      <Title>Tempat Makan - Titip Makan</Title>
+      <Layout title="Titip Makan" showUser>
+        <section class="space-y-6">
+          <h1 class="tm-page-title">Tempat Makan</h1>
 
-        <Suspense
-          fallback={
-            <div class="space-y-3">
-              {[1, 2, 3].map(() => (
-                <div class="card h-44 animate-pulse bg-gray-100" />
-              ))}
-            </div>
-          }
-        >
-          <Show
-            when={filtered().length > 0}
-            fallback={
-              <div class="card p-10 text-center">
-                <p class="text-3xl">🏪</p>
-                <p class="mt-2 font-semibold text-gray-700">
-                  {search() ? "Toko tidak ditemukan" : "Belum ada toko"}
-                </p>
-                <Show when={!search()}>
-                  <A href="/stores/new" class="btn-primary mt-4 inline-flex">
-                    Tambah Toko
-                  </A>
-                </Show>
-              </div>
-            }
-          >
-            <div class="space-y-3">
-              <For each={filtered()}>
-                {(store) => (
-                  <div class="card overflow-hidden">
-                    {/* Image with status overlay */}
-                    <div class="relative h-36 bg-gray-100">
-                      <Show
-                        when={store.imageUrl}
-                        fallback={
-                          <div class="flex h-full items-center justify-center text-5xl">
-                            🏪
-                          </div>
-                        }
-                      >
-                        <img
-                          src={store.imageUrl!}
-                          alt={store.name}
-                          class="h-full w-full object-cover"
-                        />
-                      </Show>
-                      {/* Status badge overlay */}
-                      <span
-                        class={`absolute right-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold shadow ${
-                          store.isActive
-                            ? "bg-emerald-500 text-white"
-                            : "bg-gray-600 text-white"
-                        }`}
-                      >
-                        {store.isActive ? "Buka" : "Tutup"}
-                      </span>
-                    </div>
+          <div class="relative">
+            <IconSearch class="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-slate-500" />
+            <input
+              type="search"
+              class="input pl-16 text-lg"
+              placeholder="Cari store atau menu..."
+              value={search()}
+              onInput={(e) => setSearch(e.currentTarget.value)}
+            />
+          </div>
 
-                    {/* Info */}
-                    <div class="p-4">
-                      <div class="flex items-start justify-between gap-2">
-                        <div class="flex-1 min-w-0">
-                          <h3 class="font-bold text-gray-900">{store.name}</h3>
-                          <Show when={store.description}>
-                            <p class="mt-0.5 text-sm text-gray-500 line-clamp-1">
-                              {store.description}
-                            </p>
-                          </Show>
-                          <div class="mt-1.5 flex flex-wrap gap-2">
-                            <Show when={store.address}>
-                              <div class="flex items-center gap-1 text-xs text-gray-400">
-                                <IconMapPin class="h-3 w-3" />
-                                <span class="truncate max-w-[140px]">{store.address}</span>
-                              </div>
-                            </Show>
-                            <Show when={store.phone}>
-                              <div class="flex items-center gap-1 text-xs text-gray-400">
-                                <IconPhone class="h-3 w-3" />
-                                <span>{store.phone}</span>
-                              </div>
-                            </Show>
-                          </div>
-                        </div>
-                        <div class="flex shrink-0 gap-2">
-                          <A
-                            href={`/stores/${store.id}/edit`}
-                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-                          >
-                            <IconEdit class="h-3.5 w-3.5" />
-                          </A>
-                          <form method="post" action={toggleStoreAction}>
-                            <input type="hidden" name="id" value={store.id} />
-                            <input type="hidden" name="isActive" value={store.isActive.toString()} />
-                            <button
-                              type="submit"
-                              class={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                                store.isActive
-                                  ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                  : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                              }`}
-                            >
-                              {store.isActive ? "Tutup" : "Buka"}
-                            </button>
-                          </form>
+          <Suspense fallback={<StoreSkeleton />}>
+            <Show
+              when={filteredStores().length > 0}
+              fallback={
+                <div class="tm-card p-8">
+                  <p class="text-lg text-slate-600">
+                    Belum ada store yang cocok dengan pencarian.
+                  </p>
+                </div>
+              }
+            >
+              <div class="space-y-6">
+                <For each={filteredStores()}>
+                  {(store) => (
+                    <div class="tm-card overflow-hidden">
+                      <div class="relative h-56 bg-slate-200">
+                        <Show
+                          when={store.imageUrl}
+                          fallback={
+                            <div class="h-full w-full bg-gradient-to-br from-slate-200 via-slate-300 to-slate-200" />
+                          }
+                        >
+                          <img
+                            src={store.imageUrl!}
+                            alt={store.name}
+                            class="h-full w-full object-cover"
+                          />
+                        </Show>
+                        <div class="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-base font-medium text-slate-700 shadow-sm">
+                          <span
+                            class={`mr-2 inline-block h-3 w-3 rounded-full ${store.isActive ? "bg-emerald-400" : "bg-red-400"}`}
+                          />
+                          {store.isActive ? "Buka" : "Tutup"}
                         </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-              </For>
-            </div>
-          </Show>
-        </Suspense>
 
-        {/* FAB */}
-        <A
-          href="/stores/new"
-          class="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 active:scale-95 transition-all z-40"
-          aria-label="Tambah Toko"
-        >
-          <IconPlus class="h-6 w-6" />
-        </A>
+                      <div class="p-6">
+                        <h2 class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+                          {store.name}
+                        </h2>
+                        <p class="mt-3 text-lg leading-8 text-slate-700">
+                          {store.description ||
+                            "Tersedia berbagai pilihan makanan enak untuk makan siang."}
+                        </p>
+
+                        <div class="mt-5 flex items-start gap-3 text-base text-slate-600">
+                          <IconMapPin class="mt-0.5 h-5 w-5 shrink-0" />
+                          <span>
+                            {store.address || "Alamat belum ditambahkan"}
+                          </span>
+                        </div>
+
+                        <p class="mt-4 text-base font-medium text-primary-700">
+                          Lihat menu tersedia
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </Suspense>
+
+          <A
+            href="/stores/new"
+            class="btn-accent fixed bottom-28 right-6 z-40 gap-3 px-7"
+          >
+            <IconPlus class="h-6 w-6" />
+            Tambah Store
+          </A>
+        </section>
       </Layout>
     </>
+  );
+}
+
+function StoreSkeleton() {
+  return (
+    <div class="space-y-6">
+      {[1, 2].map((item) => (
+        <div class="h-96 animate-pulse rounded-[2rem] bg-white/80" />
+      ))}
+    </div>
   );
 }

@@ -1,14 +1,21 @@
-import { createSignal, Show } from "solid-js";
-import { useNavigate } from "@solidjs/router";
 import { Title } from "@solidjs/meta";
-import { useUser, Role } from "~/lib/user-context";
-import { IconCheckCircle, IconCircle, IconArrowRight } from "~/components/icons";
+import { useNavigate } from "@solidjs/router";
+import { createSignal, Show } from "solid-js";
+import {
+  IconArrowRight,
+  IconCheckCircle,
+  IconCircle,
+  IconUser,
+  IconUtensilsCrossed,
+  IconWallet,
+} from "~/components/icons";
+import { Role, useUser } from "~/lib/user-context";
 
 export default function RolePage() {
   const navigate = useNavigate();
   const { setUser, user } = useUser();
   const [selectedRole, setSelectedRole] = createSignal<Role | null>(
-    user()?.role ?? null
+    user()?.role ?? null,
   );
   const [name, setName] = createSignal(user()?.name ?? "");
   const [error, setError] = createSignal("");
@@ -16,138 +23,137 @@ export default function RolePage() {
   const handleSubmit = (e: Event) => {
     e.preventDefault();
     const role = selectedRole();
-    const n = name().trim();
+    const trimmedName = name().trim();
+
+    if (!trimmedName) {
+      setError("Nama panggilan tidak boleh kosong.");
+      return;
+    }
+
     if (!role) {
-      setError("Pilih peranmu terlebih dahulu");
+      setError("Pilih peranmu dulu ya.");
       return;
     }
-    if (!n) {
-      setError("Nama panggilan tidak boleh kosong");
-      return;
-    }
-    setUser({ role, name: n });
-    navigate(role === "pemesan" ? "/" : "/buyer/orders", { replace: true });
+
+    setUser({ role, name: trimmedName });
+    navigate("/", { replace: true });
   };
 
   return (
     <>
-      <Title>Mulai - Titip Makan</Title>
-      <div class="flex min-h-screen flex-col bg-slate-100">
-        {/* Top bar */}
-        <div class="bg-primary-700 px-4 pb-8 pt-12">
-          <div class="mx-auto max-w-lg">
-            <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                <span class="text-xl">🍱</span>
-              </div>
-              <div>
-                <h1 class="text-lg font-bold text-white">Titip Makan</h1>
-                <p class="text-xs text-primary-200">Nitip beli makan siang</p>
-              </div>
+      <Title>Pilih Peran - Titip Makan</Title>
+      <div class="tm-app-shell">
+        <div class="mx-auto flex min-h-screen w-full max-w-[30rem] flex-col px-6 pb-10 pt-12">
+          <div class="mb-10 flex flex-col items-center text-center">
+            <div class="mb-8 flex h-44 w-44 items-center justify-center rounded-[2rem] bg-slate-200/70 text-primary-700 shadow-sm">
+              <IconWallet class="h-20 w-20" />
             </div>
+            <h1 class="text-xl font-extrabold tracking-[-0.07em] text-slate-900">
+              Titip Makan
+            </h1>
+            <p class="mt-4 max-w-[18rem] text-lg leading-9 text-slate-600">
+              Nitip beli makan siang jadi lebih gampang
+            </p>
           </div>
-        </div>
 
-        {/* Content card that overlaps the top bar */}
-        <div class="mx-auto w-full max-w-lg flex-1 -mt-4 px-4">
-          <div class="rounded-2xl bg-white shadow-sm">
-            <div class="p-5">
-              <h2 class="text-base font-bold text-gray-900">Siapa kamu?</h2>
-              <p class="mt-0.5 text-sm text-gray-500">Pilih peranmu untuk memulai</p>
+          <form class="flex flex-1 flex-col" onSubmit={handleSubmit}>
+            <label class="mb-3 text-lg font-semibold text-slate-700">
+              Nama Panggilan
+            </label>
+            <div class="relative mb-12">
+              <IconUser class="pointer-events-none absolute left-5 top-1/2 h-7 w-7 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                class="input pl-16 text-lg"
+                placeholder="Cth: Budi"
+                value={name()}
+                onInput={(e) => {
+                  setName(e.currentTarget.value);
+                  setError("");
+                }}
+              />
             </div>
 
-            <form onSubmit={handleSubmit}>
-              {/* Name input */}
-              <div class="border-t border-gray-100 px-5 py-4">
-                <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Nama Panggilan
-                </label>
-                <input
-                  type="text"
-                  class="input"
-                  placeholder="Contoh: Budi"
-                  value={name()}
-                  onInput={(e) => {
-                    setName(e.currentTarget.value);
-                    setError("");
-                  }}
-                  maxLength={100}
-                />
-              </div>
+            <label class="mb-4 text-lg font-semibold text-slate-700">
+              Pilih Peranmu Hari Ini
+            </label>
 
-              {/* Role options */}
-              <div class="border-t border-gray-100 px-5 py-4">
-                <label class="mb-3 block text-xs font-semibold uppercase tracking-wide text-gray-400">
-                  Peran
-                </label>
-                <div class="space-y-2.5">
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedRole("pemesan"); setError(""); }}
-                    class={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${
-                      selectedRole() === "pemesan"
-                        ? "border-primary-500 bg-primary-50"
-                        : "border-gray-100 bg-gray-50 hover:border-gray-200"
-                    }`}
-                  >
-                    <span class="text-2xl">🙋</span>
-                    <div class="flex-1">
-                      <p class={`font-semibold ${selectedRole() === "pemesan" ? "text-primary-700" : "text-gray-800"}`}>
-                        Saya Nitip Makan
-                      </p>
-                      <p class="text-xs text-gray-400">Mau titip beli makan siang</p>
-                    </div>
-                    <Show
-                      when={selectedRole() === "pemesan"}
-                      fallback={<IconCircle class="h-5 w-5 text-gray-300" />}
-                    >
-                      <IconCheckCircle class="h-5 w-5 text-primary-500" />
-                    </Show>
-                  </button>
+            <div class="space-y-5">
+              <RoleOption
+                title="Saya Nitip Makan"
+                description="Pesan makanan bareng teman kantor"
+                selected={selectedRole() === "pemesan"}
+                onClick={() => {
+                  setSelectedRole("pemesan");
+                  setError("");
+                }}
+                icon={<IconUtensilsCrossed class="h-10 w-10" />}
+              />
 
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedRole("pembeli"); setError(""); }}
-                    class={`w-full flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${
-                      selectedRole() === "pembeli"
-                        ? "border-primary-500 bg-primary-50"
-                        : "border-gray-100 bg-gray-50 hover:border-gray-200"
-                    }`}
-                  >
-                    <span class="text-2xl">🛍️</span>
-                    <div class="flex-1">
-                      <p class={`font-semibold ${selectedRole() === "pembeli" ? "text-primary-700" : "text-gray-800"}`}>
-                        Saya Yang Belikan
-                      </p>
-                      <p class="text-xs text-gray-400">Mau ke toko belikan teman</p>
-                    </div>
-                    <Show
-                      when={selectedRole() === "pembeli"}
-                      fallback={<IconCircle class="h-5 w-5 text-gray-300" />}
-                    >
-                      <IconCheckCircle class="h-5 w-5 text-primary-500" />
-                    </Show>
-                  </button>
-                </div>
-              </div>
+              <RoleOption
+                title="Saya Yang Belikan"
+                description="Bantu belikan dan dapatkan insentif"
+                selected={selectedRole() === "pembeli"}
+                onClick={() => {
+                  setSelectedRole("pembeli");
+                  setError("");
+                }}
+                icon={<IconArrowRight class="h-10 w-10 rotate-[-45deg]" />}
+              />
+            </div>
 
-              <Show when={error()}>
-                <p class="px-5 pb-2 text-sm text-red-500">{error()}</p>
-              </Show>
+            <Show when={error()}>
+              <p class="mt-4 text-sm font-medium text-red-500">{error()}</p>
+            </Show>
 
-              <div class="border-t border-gray-100 p-5">
-                <button
-                  type="submit"
-                  class="btn-primary w-full flex items-center justify-center gap-2"
-                >
-                  Mulai
-                  <IconArrowRight class="h-4 w-4" />
-                </button>
-              </div>
-            </form>
-          </div>
+            <button
+              type="submit"
+              class="btn-primary mt-auto w-full gap-3 text-lg"
+            >
+              Mulai
+              <IconArrowRight class="h-6 w-6" />
+            </button>
+          </form>
         </div>
       </div>
     </>
+  );
+}
+
+function RoleOption(props: {
+  title: string;
+  description: string;
+  selected: boolean;
+  onClick: () => void;
+  icon: JSX.Element;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      class={`tm-card flex w-full items-center gap-5 p-7 text-left transition-all ${
+        props.selected ? "border-[3px] !border-primary-700" : ""
+      }`}
+    >
+      <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-sky-100 text-primary-700">
+        {props.icon}
+      </div>
+
+      <div class="min-w-0 flex-1">
+        <p class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+          {props.title}
+        </p>
+        <p class="mt-2 text-base leading-8 text-slate-600">
+          {props.description}
+        </p>
+      </div>
+
+      <Show
+        when={props.selected}
+        fallback={<IconCircle class="h-10 w-10 shrink-0 text-slate-400" />}
+      >
+        <IconCheckCircle class="h-10 w-10 shrink-0 text-slate-500" />
+      </Show>
+    </button>
   );
 }

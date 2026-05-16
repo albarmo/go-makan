@@ -1,9 +1,9 @@
 import { query, action, redirect } from "@solidjs/router";
-import { eq, and, ne, desc } from "drizzle-orm";
+import { eq, and, ne, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "~/lib/db";
 import { orders, orderItems, stores, menus } from "~/lib/db/schema";
-import { todayString } from "~/lib/utils";
+import { buildOrderSummary, todayString } from "~/lib/utils";
 
 const OrderItemInput = z.object({
   menuId: z.number().int().positive(),
@@ -45,7 +45,33 @@ export const getMyOrders = query(async (requesterName: string) => {
       and(eq(orders.requesterName, requesterName), eq(orders.orderDate, today))
     )
     .orderBy(desc(orders.createdAt));
-  return result;
+
+  if (result.length === 0) return result;
+
+  const itemRows = await db
+    .select({
+      orderId: orderItems.orderId,
+      menuNameSnapshot: orderItems.menuNameSnapshot,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(inArray(orderItems.orderId, result.map((order) => order.id)));
+
+  const itemsByOrderId = new Map<number, typeof itemRows>();
+  for (const item of itemRows) {
+    const existing = itemsByOrderId.get(item.orderId) ?? [];
+    existing.push(item);
+    itemsByOrderId.set(item.orderId, existing);
+  }
+
+  return result.map((order) => {
+    const orderItemsForSummary = itemsByOrderId.get(order.id) ?? [];
+    return {
+      ...order,
+      itemSummary: buildOrderSummary(orderItemsForSummary),
+      itemCount: orderItemsForSummary.reduce((sum, item) => sum + item.quantity, 0),
+    };
+  });
 }, "getMyOrders");
 
 export const getTodayOrders = query(async () => {
@@ -70,8 +96,34 @@ export const getTodayOrders = query(async () => {
     .from(orders)
     .innerJoin(stores, eq(orders.storeId, stores.id))
     .where(eq(orders.orderDate, today))
-    .orderBy(stores.name, orders.requesterName);
-  return result;
+    .orderBy(desc(orders.createdAt));
+
+  if (result.length === 0) return result;
+
+  const itemRows = await db
+    .select({
+      orderId: orderItems.orderId,
+      menuNameSnapshot: orderItems.menuNameSnapshot,
+      quantity: orderItems.quantity,
+    })
+    .from(orderItems)
+    .where(inArray(orderItems.orderId, result.map((order) => order.id)));
+
+  const itemsByOrderId = new Map<number, typeof itemRows>();
+  for (const item of itemRows) {
+    const existing = itemsByOrderId.get(item.orderId) ?? [];
+    existing.push(item);
+    itemsByOrderId.set(item.orderId, existing);
+  }
+
+  return result.map((order) => {
+    const orderItemsForSummary = itemsByOrderId.get(order.id) ?? [];
+    return {
+      ...order,
+      itemSummary: buildOrderSummary(orderItemsForSummary),
+      itemCount: orderItemsForSummary.reduce((sum, item) => sum + item.quantity, 0),
+    };
+  });
 }, "getTodayOrders");
 
 export const getOrderById = query(async (id: number) => {

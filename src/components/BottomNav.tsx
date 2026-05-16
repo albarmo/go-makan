@@ -1,60 +1,79 @@
-import { A } from "@solidjs/router";
+import { A, useLocation } from "@solidjs/router";
 import { Component, For } from "solid-js";
 import { useUser } from "~/lib/user-context";
-import {
-  IconHome,
-  IconUtensilsCrossed,
-  IconWallet,
-  IconUser,
-  IconChart,
-  IconList,
-} from "./icons";
+import { IconHome, IconUser, IconUtensilsCrossed, IconWallet } from "./icons";
 
 interface NavItem {
   href: string;
   label: string;
   Icon: Component<{ class?: string }>;
-  end?: boolean;
+  matches: string[];
 }
 
 const pemesanNav: NavItem[] = [
-  { href: "/", label: "Beranda", Icon: IconHome, end: true },
-  { href: "/my-orders", label: "Pesanan", Icon: IconUtensilsCrossed },
-  { href: "/orders/new", label: "Titip", Icon: IconList },
-  { href: "/role", label: "Akun", Icon: IconUser },
+  { href: "/", label: "Home", Icon: IconHome, matches: ["/", "/stores"] },
+  {
+    href: "/my-orders",
+    label: "Orders",
+    Icon: IconUtensilsCrossed,
+    matches: ["/my-orders", "/menus", "/orders/new", "/orders/"],
+  },
+  {
+    href: "/stores",
+    label: "Wallet",
+    Icon: IconWallet,
+    matches: ["/stores/new", "/stores/"],
+  },
+  { href: "/role", label: "Account", Icon: IconUser, matches: ["/role"] },
 ];
 
 const pembeliNav: NavItem[] = [
-  { href: "/buyer/orders", label: "Order", Icon: IconHome, end: true },
-  { href: "/buyer/recap", label: "Rekap", Icon: IconUtensilsCrossed },
-  { href: "/buyer/settlement", label: "Tagihan", Icon: IconWallet },
-  { href: "/role", label: "Akun", Icon: IconUser },
+  { href: "/", label: "Home", Icon: IconHome, matches: ["/"] },
+  {
+    href: "/buyer/orders",
+    label: "Orders",
+    Icon: IconUtensilsCrossed,
+    matches: ["/buyer/orders", "/buyer/recap", "/orders/"],
+  },
+  {
+    href: "/buyer/settlement",
+    label: "Wallet",
+    Icon: IconWallet,
+    matches: ["/buyer/settlement"],
+  },
+  { href: "/role", label: "Account", Icon: IconUser, matches: ["/role"] },
 ];
 
 export default function BottomNav() {
   const { user } = useUser();
+  const location = useLocation();
 
-  const navItems = () => {
-    const u = user();
-    if (!u) return [] as NavItem[];
-    return u.role === "pemesan" ? pemesanNav : pembeliNav;
-  };
+  const navItems = () => (user()?.role === "pembeli" ? pembeliNav : pemesanNav);
+  const pathname = () => location.pathname;
+
+  const isActive = (item: NavItem) =>
+    item.matches.some((match) =>
+      match.endsWith("/") ? pathname().startsWith(match) : pathname() === match,
+    );
 
   return (
-    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-      <div class="mx-auto flex max-w-lg items-end pb-safe">
+    <nav class="tm-bottom-nav">
+      <div class="mx-auto flex max-w-[30rem] items-end justify-between px-6 pb-5 pt-3">
         <For each={navItems()}>
           {(item) => (
             <A
               href={item.href}
-              end={item.end}
-              class="flex flex-1 flex-col items-center gap-0.5 py-2 text-gray-400 transition-colors"
-              activeClass="!text-primary-600 [&>div]:bg-primary-100"
+              class="flex min-w-[4.5rem] flex-col items-center gap-1 text-primary-700/90"
             >
-              <div class="flex h-8 w-14 items-center justify-center rounded-full transition-colors">
-                <item.Icon class="h-5 w-5" />
+              <div
+                class={`flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-[1.5rem] transition-all ${
+                  isActive(item)
+                    ? "bg-[#74e0f7] text-primary-700 shadow-sm"
+                    : "text-primary-700"
+                }`}
+              >
+                <item.Icon class="h-7 w-7" />
               </div>
-              <span class="text-[10px] font-medium">{item.label}</span>
             </A>
           )}
         </For>

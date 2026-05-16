@@ -1,10 +1,11 @@
 import { createAsync } from "@solidjs/router";
-import { createMemo, For, Show, Suspense } from "solid-js";
 import { Title } from "@solidjs/meta";
+import { createMemo, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { IconCalendar, IconReceipt, IconStore, IconWallet } from "~/components/icons";
 import { getBuyerRecap } from "~/server/orders";
-import { formatRupiah, formatDate, todayString } from "~/lib/utils";
+import { formatRupiah } from "~/lib/utils";
 
 export const route = {
   load: () => getBuyerRecap(),
@@ -23,16 +24,13 @@ function BuyerRecapContent() {
 
   const grandTotal = createMemo(() =>
     (recap() ?? []).reduce(
-      (sum, store) =>
-        sum + store.items.reduce((s, item) => s + item.totalSubtotal, 0),
+      (sum, store) => sum + store.items.reduce((acc, item) => acc + item.totalSubtotal, 0),
       0
     )
   );
-
   const totalItems = createMemo(() =>
     (recap() ?? []).reduce(
-      (sum, store) =>
-        sum + store.items.reduce((s, item) => s + item.totalQuantity, 0),
+      (sum, store) => sum + store.items.reduce((acc, item) => acc + item.totalQuantity, 0),
       0
     )
   );
@@ -40,130 +38,161 @@ function BuyerRecapContent() {
   return (
     <>
       <Title>Rekap Belanja - Titip Makan</Title>
-      <Layout title="Rekap Belanja">
-        <Suspense
-          fallback={
-            <div class="space-y-4">
-              {[1, 2].map(() => (
-                <div class="card h-44 animate-pulse bg-gray-100" />
-              ))}
+      <Layout title="Titip Makan">
+        <section class="space-y-6">
+          <div class="flex items-start justify-between gap-4">
+            <h1 class="tm-page-title">Rekap Belanja</h1>
+            <div class="tm-panel flex min-w-[11rem] items-center gap-4">
+              <IconCalendar class="h-7 w-7 text-primary-700" />
+              <span class="text-lg font-semibold leading-8 text-slate-800">
+                Hari ini
+              </span>
             </div>
-          }
-        >
-          <Show
-            when={(recap() ?? []).length > 0}
-            fallback={
-              <div class="card p-10 text-center">
-                <p class="text-4xl">📊</p>
-                <p class="mt-3 font-bold text-gray-800">Belum ada order hari ini</p>
-                <p class="mt-1 text-sm text-gray-400">
-                  Rekap akan muncul saat ada pesanan
+          </div>
+
+          <div class="rounded-[2rem] bg-[#35bced] px-8 py-8 text-primary-800 shadow-[0_18px_36px_rgba(53,188,237,0.2)]">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xl text-primary-700">Total Belanja</p>
+                <p class="mt-4 text-xl font-bold tracking-[-0.06em]">
+                  {formatRupiah(grandTotal())}
                 </p>
               </div>
-            }
-          >
-            {/* Grand total banner */}
-            <div class="mb-4 rounded-2xl bg-primary-700 p-5">
-              <p class="text-xs text-primary-300">{formatDate(todayString())}</p>
-              <p class="mt-1 text-2xl font-bold text-white">{formatRupiah(grandTotal())}</p>
-              <p class="text-xs text-primary-300 mt-0.5">Total Belanja Hari Ini</p>
-              <div class="mt-3 flex gap-4 border-t border-white/20 pt-3">
-                <div>
-                  <p class="text-lg font-bold text-white">{totalItems()}</p>
-                  <p class="text-xs text-primary-300">Total Item</p>
-                </div>
-                <div>
-                  <p class="text-lg font-bold text-white">{(recap() ?? []).length}</p>
-                  <p class="text-xs text-primary-300">Toko</p>
-                </div>
+              <div class="flex h-20 w-20 items-center justify-center rounded-full bg-primary-700/10">
+                <IconWallet class="h-10 w-10" />
               </div>
             </div>
+          </div>
 
-            {/* Per store */}
-            <div class="space-y-3">
-              <For each={recap()}>
-                {(storeData) => {
-                  const storeTotalQty = () =>
-                    storeData.items.reduce((s, i) => s + i.totalQuantity, 0);
-                  const storeTotalAmount = () =>
-                    storeData.items.reduce((s, i) => s + i.totalSubtotal, 0);
+          <div class="grid grid-cols-2 gap-4">
+            <div class="tm-card p-6 text-center">
+              <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-primary-700">
+                <IconStore class="h-6 w-6" />
+              </div>
+              <p class="text-xl font-bold tracking-[-0.05em] text-slate-900">
+                {(recap() ?? []).length}
+              </p>
+              <p class="text-lg text-slate-600">Jumlah Store</p>
+            </div>
+            <div class="tm-card p-6 text-center">
+              <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-primary-700">
+                <IconReceipt class="h-6 w-6" />
+              </div>
+              <p class="text-xl font-bold tracking-[-0.05em] text-slate-900">
+                {totalItems()}
+              </p>
+              <p class="text-lg text-slate-600">Jumlah Item</p>
+            </div>
+          </div>
 
-                  return (
-                    <div class="card overflow-hidden">
-                      {/* Store header */}
-                      <div class="flex items-center justify-between bg-slate-50 px-4 py-3">
-                        <div class="flex items-center gap-2.5">
-                          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-sm font-bold text-white">
-                            {storeData.storeName.charAt(0).toUpperCase()}
+          <Suspense fallback={<RecapSkeleton />}>
+            <Show
+              when={(recap() ?? []).length > 0}
+              fallback={
+                <div class="tm-card p-8">
+                  <p class="text-lg text-slate-600">Belum ada data rekap belanja.</p>
+                </div>
+              }
+            >
+              <div class="space-y-6">
+                <For each={recap()}>
+                  {(storeData) => {
+                    const totalStoreAmount = storeData.items.reduce(
+                      (sum, item) => sum + item.totalSubtotal,
+                      0
+                    );
+                    const totalStoreItems = storeData.items.reduce(
+                      (sum, item) => sum + item.totalQuantity,
+                      0
+                    );
+                    const isDone = storeData.items.every((item) =>
+                      item.orders.every((order) => order.status === "purchased")
+                    );
+
+                    return (
+                      <div class="tm-card overflow-hidden">
+                        <div class="flex items-start justify-between gap-4 bg-slate-50 px-6 py-5">
+                          <div class="flex items-start gap-4">
+                            <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-xl font-bold text-primary-700">
+                              {storeData.storeName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p class={`text-xl font-semibold leading-tight tracking-[-0.05em] ${isDone ? "line-through text-slate-500" : "text-slate-900"}`}>
+                                {storeData.storeName}
+                              </p>
+                              <p class="mt-1 text-lg text-slate-500">
+                                {totalStoreItems} item • {formatRupiah(totalStoreAmount)}
+                              </p>
+                            </div>
                           </div>
-                          <p class="font-semibold text-gray-900">{storeData.storeName}</p>
+                          <span class={isDone ? "badge-purchased" : "badge-submitted"}>
+                            {isDone ? "Sudah Dibeli" : "Belum Dibeli"}
+                          </span>
                         </div>
-                        <div class="text-right">
-                          <p class="text-sm font-bold text-primary-600">
-                            {formatRupiah(storeTotalAmount())}
-                          </p>
-                          <p class="text-xs text-gray-400">{storeTotalQty()} item</p>
-                        </div>
-                      </div>
 
-                      {/* Menu items */}
-                      <div class="divide-y divide-gray-50">
-                        <For each={storeData.items}>
-                          {(item) => (
-                            <div class="p-4">
-                              <div class="flex items-start justify-between gap-3">
-                                <div class="flex-1">
-                                  <div class="flex items-center gap-2">
-                                    <p class="font-semibold text-gray-900">{item.menuName}</p>
-                                    <span class="rounded-full bg-primary-100 px-2 py-0.5 text-xs font-bold text-primary-700">
-                                      ×{item.totalQuantity}
-                                    </span>
-                                  </div>
-                                  <p class="text-xs text-gray-400">{formatRupiah(item.price)} / porsi</p>
-                                </div>
-                                <p class="shrink-0 font-bold text-primary-600">
-                                  {formatRupiah(item.totalSubtotal)}
-                                </p>
-                              </div>
-
-                              {/* Per pemesan */}
-                              <div class="mt-2.5 space-y-1.5">
-                                <For each={item.orders}>
-                                  {(orderDetail) => (
-                                    <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2">
-                                      <div class="flex items-center gap-2">
-                                        <div class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-100 text-[10px] font-bold text-primary-700">
-                                          {orderDetail.requesterName.charAt(0).toUpperCase()}
-                                        </div>
-                                        <span class="text-xs font-medium text-gray-700">
-                                          {orderDetail.requesterName}
-                                        </span>
-                                        <span class="text-xs text-gray-400">×{orderDetail.quantity}</span>
-                                        <Show when={orderDetail.notes}>
-                                          <span class="text-xs text-gray-400 italic">
-                                            — {orderDetail.notes}
-                                          </span>
-                                        </Show>
-                                      </div>
-                                      <span class="text-xs font-semibold text-gray-700">
-                                        {formatRupiah(item.price * orderDetail.quantity)}
+                        <div class="px-6 py-6">
+                          <For each={storeData.items}>
+                            {(item) => (
+                              <div class="border-b border-slate-200 py-5 last:border-b-0">
+                                <div class="mb-2 flex items-start justify-between gap-4">
+                                  <div>
+                                    <div class="flex items-center gap-3">
+                                      <p class={`text-lg font-semibold text-slate-900 ${isDone ? "line-through text-slate-400" : ""}`}>
+                                        {item.menuName}
+                                      </p>
+                                      <span class="rounded-xl bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-500">
+                                        x{item.totalQuantity}
                                       </span>
                                     </div>
-                                  )}
-                                </For>
+                                    <p class="mt-3 text-base text-slate-600">
+                                      {formatRupiah(item.totalSubtotal)}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div class="mt-4 flex flex-wrap gap-2">
+                                  <For each={item.orders}>
+                                    {(orderDetail) => (
+                                      <span class="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-600">
+                                        {orderDetail.requesterName}
+                                        <Show when={orderDetail.notes}>
+                                          {`: ${orderDetail.notes}`}
+                                        </Show>
+                                      </span>
+                                    )}
+                                  </For>
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </For>
+                            )}
+                          </For>
+                        </div>
+
+                        <Show when={!isDone}>
+                          <div class="px-6 pb-6">
+                            <button type="button" class="btn-primary w-full">
+                              Tandai Semua dari Store Ini Sudah Dibeli
+                            </button>
+                          </div>
+                        </Show>
                       </div>
-                    </div>
-                  );
-                }}
-              </For>
-            </div>
-          </Show>
-        </Suspense>
+                    );
+                  }}
+                </For>
+              </div>
+            </Show>
+          </Suspense>
+        </section>
       </Layout>
     </>
+  );
+}
+
+function RecapSkeleton() {
+  return (
+    <div class="space-y-6">
+      {[1, 2].map((item) => (
+        <div class="h-96 animate-pulse rounded-[2rem] bg-white/80" />
+      ))}
+    </div>
   );
 }

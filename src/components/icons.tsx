@@ -237,3 +237,57 @@ export function IconBell(props: { class?: string }) {
     </svg>
   );
 }
+
+export function IconCalendar(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 2v4" />
+      <path d="M16 2v4" />
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M3 10h18" />
+    </svg>
+  );
+}
+
+export function IconFilter(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 6h16" />
+      <path d="M7 12h10" />
+      <path d="M10 18h4" />
+    </svg>
+  );
+}
+
+export function IconMessageCircle(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 10h10" />
+      <path d="M7 14h6" />
+      <path d="M21 12a8.97 8.97 0 0 1-1.82 5.36A9 9 0 0 1 12 21a8.97 8.97 0 0 1-5.36-1.82L3 20l.82-3.64A8.97 8.97 0 0 1 3 12a9 9 0 1 1 18 0Z" />
+    </svg>
+  );
+}
+
+export function IconReceipt(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 3h16v18l-3-2-3 2-2-2-2 2-3-2-3 2V3Z" />
+      <path d="M8 7h8" />
+      <path d="M8 11h8" />
+      <path d="M8 15h5" />
+    </svg>
+  );
+}
+
+export function IconBike(props: { class?: string }) {
+  return (
+    <svg class={props.class} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5.5" cy="17.5" r="3.5" />
+      <circle cx="18.5" cy="17.5" r="3.5" />
+      <path d="M15 6h2l2 4" />
+      <path d="M6 17.5 10 11h4l4.5 6.5" />
+      <path d="M10 11 8.5 7H6" />
+    </svg>
+  );
+}

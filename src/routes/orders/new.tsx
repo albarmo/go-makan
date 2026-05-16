@@ -1,27 +1,26 @@
-import { createAsync, useAction } from "@solidjs/router";
-import {
-  createMemo,
-  createSignal,
-  For,
-  Show,
-  Suspense,
-} from "solid-js";
 import { Title } from "@solidjs/meta";
+import { createAsync, useAction } from "@solidjs/router";
+import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
+import { IconArrowRight, IconChevronLeft } from "~/components/icons";
 import RoleGuard from "~/components/RoleGuard";
-import { useUser } from "~/lib/user-context";
-import { getActiveStores } from "~/server/stores";
-import { getMenusByStore } from "~/server/menus";
-import { createOrderAction } from "~/server/orders";
-import { formatRupiah } from "~/lib/utils";
 import { type Menu } from "~/lib/db/schema";
-import { IconChevronLeft, IconMapPin, IconArrowRight } from "~/components/icons";
+import { useUser } from "~/lib/user-context";
+import { formatRupiah } from "~/lib/utils";
+import { getAvailableMenus, getMenusByStore } from "~/server/menus";
+import { createOrderAction } from "~/server/orders";
+import { getActiveStores } from "~/server/stores";
 
 interface CartItem {
   menuId: number;
+  storeId: number;
   menuName: string;
   price: number;
   quantity: number;
   notes: string;
+}
+
+interface BrowseMenu extends Menu {
+  storeName?: string;
 }
 
 export const route = {
@@ -39,89 +38,96 @@ export default function NewOrderPage() {
 function NewOrderContent() {
   const { user } = useUser();
   const createOrder = useAction(createOrderAction);
-  const activeStores = createAsync(() => getActiveStores());
+  const stores = createAsync(() => getActiveStores());
+  const allMenus = createAsync(() => getAvailableMenus());
 
-  const [step, setStep] = createSignal<"store" | "menu">("store");
-  const [selectedStore, setSelectedStore] = createSignal<{
-    id: number;
-    name: string;
-    description?: string | null;
-    address?: string | null;
-    imageUrl?: string | null;
-  } | null>(null);
+  const [selectedStoreId, setSelectedStoreId] = createSignal<number | null>(
+    null,
+  );
   const [cart, setCart] = createSignal<CartItem[]>([]);
-  const [orderNotes, setOrderNotes] = createSignal("");
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
+  const selectedStore = createMemo(
+    () =>
+      (stores() ?? []).find((store) => store.id === selectedStoreId()) ?? null,
+  );
+
   const storeMenus = createAsync(() => {
-    const s = selectedStore();
-    if (!s) return Promise.resolve([] as Menu[]);
-    return getMenusByStore(s.id);
+    const storeId = selectedStoreId();
+    if (!storeId) return Promise.resolve([] as Menu[]);
+    return getMenusByStore(storeId);
+  });
+
+  const visibleMenus = createMemo<BrowseMenu[]>(() => {
+    const storeId = selectedStoreId();
+    if (!storeId) return (allMenus() ?? []) as BrowseMenu[];
+    return (storeMenus() ?? []).map((menu) => ({
+      ...menu,
+      storeName: selectedStore()?.name ?? undefined,
+    }));
   });
 
   const totalAmount = createMemo(() =>
-    cart().reduce((sum, item) => sum + item.price * item.quantity, 0)
+    cart().reduce((sum, item) => sum + item.price * item.quantity, 0),
   );
 
-  const cartCount = createMemo(() =>
-    cart().reduce((sum, item) => sum + item.quantity, 0)
-  );
+  const lockedStoreId = createMemo(() => cart()[0]?.storeId ?? null);
 
   const getCartItem = (menuId: number) =>
     cart().find((item) => item.menuId === menuId);
 
-  const setQuantity = (menu: Menu, qty: number) => {
-    if (qty <= 0) {
-      setCart((prev) => prev.filter((item) => item.menuId !== menu.id));
-    } else {
-      setCart((prev) => {
-        const existing = prev.find((item) => item.menuId === menu.id);
-        if (existing) {
-          return prev.map((item) =>
-            item.menuId === menu.id ? { ...item, quantity: qty } : item
-          );
-        }
+  const setQuantity = (menu: BrowseMenu, quantity: number) => {
+    if (quantity <= 0) {
+      setCart((items) => items.filter((item) => item.menuId !== menu.id));
+      return;
+    }
+
+    setCart((items) => {
+      const existing = items.find((item) => item.menuId === menu.id);
+      if (!existing) {
         return [
-          ...prev,
+          ...items,
           {
             menuId: menu.id,
+            storeId: menu.storeId,
             menuName: menu.name,
             price: menu.price,
-            quantity: qty,
+            quantity,
             notes: "",
           },
         ];
-      });
+      }
+
+      return items.map((item) =>
+        item.menuId === menu.id ? { ...item, quantity } : item,
+      );
+    });
+
+    if (!selectedStoreId()) {
+      setSelectedStoreId(menu.storeId);
     }
   };
 
   const setItemNotes = (menuId: number, notes: string) => {
-    setCart((prev) =>
-      prev.map((item) =>
-        item.menuId === menuId ? { ...item, notes } : item
-      )
+    setCart((items) =>
+      items.map((item) => (item.menuId === menuId ? { ...item, notes } : item)),
     );
   };
 
-  const handleSelectStore = (store: { id: number; name: string; description?: string | null; address?: string | null; imageUrl?: string | null }) => {
-    setSelectedStore(store);
-    setCart([]);
-    setStep("menu");
-  };
-
   const handleSubmit = async () => {
-    const u = user();
-    const s = selectedStore();
-    if (!u || !s || cart().length === 0) return;
+    const store = selectedStore();
+    const currentUser = user();
+    if (!store || !currentUser || cart().length === 0) return;
 
     setSubmitting(true);
     setError("");
+
     try {
       const formData = new FormData();
-      formData.set("requesterName", u.name);
-      formData.set("storeId", s.id.toString());
-      formData.set("notes", orderNotes());
+      formData.set("requesterName", currentUser.name);
+      formData.set("storeId", String(store.id));
+      formData.set("notes", "");
       formData.set(
         "items",
         JSON.stringify(
@@ -131,276 +137,320 @@ function NewOrderContent() {
             price: item.price,
             quantity: item.quantity,
             notes: item.notes || null,
-          }))
-        )
+          })),
+        ),
       );
       await createOrder(formData);
     } catch (err) {
-      setError(String(err));
       setSubmitting(false);
+      setError(String(err));
     }
   };
 
+  const isMenuSelectable = (menu: BrowseMenu) =>
+    !lockedStoreId() || lockedStoreId() === menu.storeId;
+
   return (
     <>
-      <Title>Order Baru - Titip Makan</Title>
-      <div class="min-h-screen bg-slate-100">
-        {/* Header */}
-        <header class="sticky top-0 z-40 bg-primary-700 text-white">
-          <div class="mx-auto flex max-w-lg items-center gap-3 px-4 py-3.5">
-            <Show when={step() === "menu"}>
-              <button
-                onClick={() => setStep("store")}
-                class="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 hover:bg-white/30"
-              >
-                <IconChevronLeft class="h-4 w-4" />
-              </button>
-            </Show>
-            <div class="flex-1">
-              <h1 class="text-base font-bold">
-                {step() === "store" ? "Pilih Toko" : selectedStore()?.name ?? "Pilih Menu"}
-              </h1>
-              <Show when={step() === "menu" && cartCount() > 0}>
-                <p class="text-xs text-primary-200">
-                  {cartCount()} item · {formatRupiah(totalAmount())}
-                </p>
-              </Show>
-              <Show when={step() === "menu" && cartCount() === 0}>
-                <p class="text-xs text-primary-300">Pilih menu yang mau dititip</p>
-              </Show>
-            </div>
-          </div>
-          {/* Step indicator */}
-          <div class="flex px-4 pb-3 gap-2">
-            <div class={`h-1 flex-1 rounded-full transition-colors ${step() === "store" ? "bg-white" : "bg-white/40"}`} />
-            <div class={`h-1 flex-1 rounded-full transition-colors ${step() === "menu" ? "bg-white" : "bg-white/20"}`} />
+      <Title>Create Order - Titip Makan</Title>
+      <div class="tm-app-shell">
+        <header class="tm-topbar">
+          <div class="mx-auto flex max-w-[30rem] items-center gap-4 px-6 py-4">
+            <button
+              type="button"
+              onClick={() => history.back()}
+              class="flex h-11 w-11 items-center justify-center rounded-full text-slate-900"
+              aria-label="Kembali"
+            >
+              <IconChevronLeft class="h-7 w-7" />
+            </button>
+            <h1 class="text-xl font-bold tracking-[-0.05em] text-slate-900">
+              Create Order
+            </h1>
           </div>
         </header>
 
-        <main class="mx-auto max-w-lg px-4 py-4 pb-36">
-          {/* Step 1: Pilih Toko */}
-          <Show when={step() === "store"}>
-            <Suspense
-              fallback={
-                <div class="space-y-3">
-                  {[1, 2, 3].map(() => (
-                    <div class="card h-20 animate-pulse bg-gray-100" />
-                  ))}
-                </div>
-              }
-            >
-              <Show
-                when={(activeStores() ?? []).length > 0}
-                fallback={
-                  <div class="card p-10 text-center">
-                    <p class="text-3xl">🏪</p>
-                    <p class="mt-2 font-semibold text-gray-700">Belum ada toko aktif</p>
-                    <p class="mt-1 text-sm text-gray-400">Minta admin untuk menambahkan toko</p>
-                  </div>
-                }
+        <main class="mx-auto max-w-[30rem] px-6 pb-44 pt-6">
+          <div class="mb-10 flex items-center justify-between">
+            <StepBadge number={1} label="Store" active />
+            <div class="mx-2 h-px flex-1 bg-slate-300" />
+            <StepBadge number={2} label="Menu" active={!!selectedStore()} />
+            <div class="mx-2 h-px flex-1 bg-slate-300" />
+            <StepBadge number={3} label="Checkout" active={cart().length > 0} />
+          </div>
+
+          <section class="space-y-5">
+            <h2 class="text-xl font-semibold tracking-[-0.05em] text-slate-900">
+              Order Details
+            </h2>
+
+            <div>
+              <label class="mb-3 block text-lg font-semibold text-slate-800">
+                Your Name
+              </label>
+              <input
+                class="input text-lg"
+                value={user()?.name ?? ""}
+                disabled
+              />
+            </div>
+
+            <div>
+              <label class="mb-3 block text-lg font-semibold text-slate-800">
+                Select Store
+              </label>
+              <select
+                class="input text-lg"
+                value={selectedStoreId() ?? ""}
+                onChange={(e) => {
+                  const nextValue = e.currentTarget.value;
+                  if (nextValue === "all") {
+                    setSelectedStoreId(null);
+                    setCart([]);
+                    return;
+                  }
+                  setSelectedStoreId(nextValue ? Number(nextValue) : null);
+                  setCart([]);
+                }}
               >
-                <div class="space-y-2">
-                  <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    Toko Tersedia
-                  </p>
-                  <For each={activeStores()}>
-                    {(store) => (
-                      <button
-                        type="button"
-                        onClick={() => handleSelectStore(store)}
-                        class="card w-full p-4 text-left hover:shadow-md active:scale-[0.98] transition-all"
+                <option value="all">Lihat semua menu</option>
+                <For each={stores()}>
+                  {(store) => <option value={store.id}>{store.name}</option>}
+                </For>
+              </select>
+            </div>
+          </section>
+
+          <section class="mt-10">
+            <div class="mb-5 flex items-center justify-between gap-4">
+              <h2 class="text-xl font-semibold tracking-[-0.05em] text-slate-900">
+                Menu
+              </h2>
+              <span class="rounded-full bg-slate-200 px-4 py-2 text-base text-slate-600">
+                {selectedStore()?.name ?? "Semua Menu"}
+              </span>
+            </div>
+
+            <Show when={lockedStoreId() && !selectedStore()}>
+              <p class="mb-4 text-sm text-slate-500">
+                Setelah pilih item pertama, order hanya bisa berisi menu dari store yang sama.
+              </p>
+            </Show>
+
+            <Suspense fallback={<MenuGridSkeleton />}>
+              <div class="grid grid-cols-2 gap-5">
+                <For each={visibleMenus()}>
+                  {(menu) => {
+                    const cartItem = () => getCartItem(menu.id);
+                    const selectable = () => isMenuSelectable(menu);
+
+                    return (
+                      <div
+                        class={`tm-card overflow-hidden p-4 ${
+                          selectable() ? "" : "opacity-50"
+                        }`}
                       >
-                        <div class="flex items-center gap-3">
+                        <div class="h-36 rounded-[1.5rem] bg-slate-200">
                           <Show
-                            when={store.imageUrl}
+                            when={menu.imageUrl}
                             fallback={
-                              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-2xl">
-                                🏪
-                              </div>
+                              <div class="h-full w-full bg-gradient-to-br from-slate-200 via-slate-300 to-slate-200" />
                             }
                           >
                             <img
-                              src={store.imageUrl!}
-                              alt={store.name}
-                              class="h-12 w-12 shrink-0 rounded-xl object-cover"
+                              src={menu.imageUrl!}
+                              alt={menu.name}
+                              class="h-full w-full rounded-[1.5rem] object-cover"
                             />
                           </Show>
-                          <div class="flex-1 min-w-0">
-                            <p class="font-semibold text-gray-900">{store.name}</p>
-                            <Show when={store.description}>
-                              <p class="text-xs text-gray-400 truncate">{store.description}</p>
-                            </Show>
-                            <Show when={store.address}>
-                              <div class="flex items-center gap-1 mt-0.5">
-                                <IconMapPin class="h-3 w-3 text-gray-400 shrink-0" />
-                                <p class="text-xs text-gray-400 truncate">{store.address}</p>
-                              </div>
-                            </Show>
-                          </div>
-                          <IconArrowRight class="h-4 w-4 shrink-0 text-gray-300" />
                         </div>
-                      </button>
-                    )}
-                  </For>
-                </div>
-              </Show>
-            </Suspense>
-          </Show>
+                        <p class="mt-4 text-xl font-semibold leading-8 tracking-[-0.03em] text-slate-900">
+                          {menu.name}
+                        </p>
+                        <Show when={menu.storeName}>
+                          <p class="mt-1 text-sm font-medium text-primary-700">
+                            {menu.storeName}
+                          </p>
+                        </Show>
+                        <p class="mt-1 text-lg text-slate-600">
+                          {formatRupiah(menu.price)}
+                        </p>
 
-          {/* Step 2: Pilih Menu */}
-          <Show when={step() === "menu"}>
-            <Suspense
-              fallback={
-                <div class="space-y-2">
-                  {[1, 2, 3, 4].map(() => (
-                    <div class="card h-20 animate-pulse bg-gray-100" />
-                  ))}
-                </div>
-              }
-            >
-              <Show
-                when={(storeMenus() ?? []).length > 0}
-                fallback={
-                  <div class="card p-10 text-center">
-                    <p class="text-3xl">🍽️</p>
-                    <p class="mt-2 font-semibold text-gray-700">Belum ada menu di toko ini</p>
-                  </div>
-                }
-              >
-                <div class="space-y-2">
-                  <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    Menu Tersedia
-                  </p>
-                  <For each={storeMenus()}>
-                    {(menu) => {
-                      const cartItem = () => getCartItem(menu.id);
-                      return (
-                        <div class={`card p-3 transition-all ${cartItem() ? "border-primary-200 ring-1 ring-primary-200" : ""}`}>
-                          <div class="flex items-center gap-3">
-                            {/* Thumbnail */}
-                            <Show
-                              when={menu.imageUrl}
-                              fallback={
-                                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-2xl">
-                                  🍽️
-                                </div>
-                              }
-                            >
-                              <img
-                                src={menu.imageUrl!}
-                                alt={menu.name}
-                                class="h-14 w-14 shrink-0 rounded-xl object-cover"
-                              />
-                            </Show>
-
-                            <div class="flex-1 min-w-0">
-                              <p class="font-semibold text-gray-900 truncate">{menu.name}</p>
-                              <Show when={menu.description}>
-                                <p class="text-xs text-gray-400 truncate">{menu.description}</p>
-                              </Show>
-                              <p class="text-sm font-bold text-primary-600">
-                                {formatRupiah(menu.price)}
-                              </p>
-                            </div>
-
-                            {/* Qty controls */}
-                            <div class="flex shrink-0 items-center gap-1.5">
-                              <Show when={cartItem()}>
-                                <button
-                                  type="button"
-                                  onClick={() => setQuantity(menu, (cartItem()?.quantity ?? 0) - 1)}
-                                  class="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-base font-bold text-gray-600 hover:bg-gray-50"
-                                >
-                                  −
-                                </button>
-                                <span class="w-5 text-center text-sm font-bold text-gray-900">
-                                  {cartItem()?.quantity ?? 0}
-                                </span>
-                              </Show>
-                              <button
-                                type="button"
-                                onClick={() => setQuantity(menu, (cartItem()?.quantity ?? 0) + 1)}
-                                class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-600 text-base font-bold text-white hover:bg-primary-700"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Per-item notes */}
+                        <div class="mt-5 flex items-center justify-end gap-3">
                           <Show when={cartItem()}>
-                            <div class="mt-2 pl-[68px]">
-                              <input
-                                type="text"
-                                class="input !py-1.5 text-xs"
-                                placeholder="Catatan (opsional)"
-                                value={cartItem()?.notes ?? ""}
-                                onInput={(e) => setItemNotes(menu.id, e.currentTarget.value)}
-                                maxLength={200}
-                              />
-                            </div>
+                            <button
+                              type="button"
+                              disabled={!selectable()}
+                              onClick={() =>
+                                setQuantity(menu, (cartItem()?.quantity ?? 0) - 1)
+                              }
+                              class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-700 disabled:opacity-50"
+                            >
+                              -
+                            </button>
+                            <span class="min-w-6 text-center text-lg font-semibold">
+                              {cartItem()?.quantity}
+                            </span>
                           </Show>
+                          <button
+                            type="button"
+                            disabled={!selectable()}
+                            onClick={() =>
+                              setQuantity(menu, (cartItem()?.quantity ?? 0) + 1)
+                            }
+                            class="flex h-12 w-12 items-center justify-center rounded-full bg-[#35bced] text-xl leading-none text-primary-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                          >
+                            +
+                          </button>
                         </div>
-                      );
-                    }}
-                  </For>
 
-                  {/* Order notes */}
-                  <div class="card p-4 mt-2">
-                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      Catatan Order
-                    </label>
-                    <textarea
-                      class="input resize-none text-sm"
-                      rows="2"
-                      placeholder="Opsional: tolong bungkus terpisah, dll"
-                      value={orderNotes()}
-                      onInput={(e) => setOrderNotes(e.currentTarget.value)}
-                      maxLength={500}
-                    />
-                  </div>
-                </div>
-              </Show>
+                        <Show when={!selectable()}>
+                          <p class="mt-3 text-xs text-slate-500">
+                            Keranjang aktif untuk store lain.
+                          </p>
+                        </Show>
+                      </div>
+                    );
+                  }}
+                </For>
+              </div>
             </Suspense>
-          </Show>
-        </main>
+          </section>
 
-        {/* Sticky cart summary + submit */}
-        <Show when={step() === "menu" && cart().length > 0}>
-          <div class="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-4">
-            <div class="mx-auto max-w-lg">
-              {/* Cart items */}
-              <div class="mb-3 max-h-28 overflow-y-auto space-y-1">
+          <Show when={cart().length > 0}>
+            <section class="mt-10">
+              <h2 class="mb-5 text-xl font-semibold tracking-[-0.05em] text-slate-900">
+                Your Items
+              </h2>
+              <div class="tm-card p-5">
                 <For each={cart()}>
                   {(item) => (
-                    <div class="flex justify-between text-xs">
-                      <span class="text-gray-500">{item.menuName} × {item.quantity}</span>
-                      <span class="font-semibold text-gray-700">{formatRupiah(item.price * item.quantity)}</span>
+                    <div class="border-b border-slate-200 py-4 last:border-b-0">
+                      <div class="mb-4 flex items-start justify-between gap-4">
+                        <div>
+                          <p class="text-xl font-semibold text-slate-900">
+                            {item.menuName}
+                          </p>
+                          <p class="mt-1 text-lg text-primary-700">
+                            {formatRupiah(item.price)}
+                          </p>
+                        </div>
+                        <div class="flex items-center gap-4 rounded-full bg-slate-100 px-5 py-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setQuantity(
+                                {
+                                  id: item.menuId,
+                                  storeId: item.storeId,
+                                  name: item.menuName,
+                                  price: item.price,
+                                } as BrowseMenu,
+                                item.quantity - 1,
+                              )
+                            }
+                            class="text-xl text-slate-700"
+                          >
+                            -
+                          </button>
+                          <span class="text-lg font-semibold">
+                            {item.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setQuantity(
+                                {
+                                  id: item.menuId,
+                                  storeId: item.storeId,
+                                  name: item.menuName,
+                                  price: item.price,
+                                } as BrowseMenu,
+                                item.quantity + 1,
+                              )
+                            }
+                            class="text-xl text-slate-700"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        class="input text-base"
+                        placeholder="Add notes (e.g., less spicy)"
+                        value={item.notes}
+                        onInput={(e) =>
+                          setItemNotes(item.menuId, e.currentTarget.value)
+                        }
+                      />
                     </div>
                   )}
                 </For>
               </div>
-              <div class="mb-3 flex justify-between border-t border-gray-100 pt-2 text-sm font-bold">
-                <span class="text-gray-900">Total</span>
-                <span class="text-primary-600">{formatRupiah(totalAmount())}</span>
+            </section>
+          </Show>
+        </main>
+
+        <Show when={cart().length > 0}>
+          <div class="tm-bottom-nav !border-t-slate-200">
+            <div class="mx-auto max-w-[30rem] px-6 pb-6 pt-4">
+              <div class="mb-4">
+                <p class="text-lg text-slate-600">Total Estimated</p>
+                <p class="mt-2 text-xl font-bold tracking-[-0.06em] text-primary-700">
+                  {formatRupiah(totalAmount())}
+                </p>
               </div>
 
               <Show when={error()}>
-                <p class="mb-2 text-xs text-red-500">{error()}</p>
+                <p class="mb-3 text-sm text-red-500">{error()}</p>
               </Show>
 
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting() || cart().length === 0}
-                class="btn-primary w-full"
+                disabled={submitting()}
+                class="btn-primary flex w-full items-center justify-center gap-3 text-base"
               >
-                {submitting() ? "Membuat Order..." : `Titip Sekarang · ${formatRupiah(totalAmount())}`}
+                {submitting() ? "Menyimpan..." : "Titip Sekarang"}
+                <IconArrowRight class="h-6 w-6" />
               </button>
             </div>
           </div>
         </Show>
       </div>
     </>
+  );
+}
+
+function StepBadge(props: { number: number; label: string; active?: boolean }) {
+  return (
+    <div class="flex flex-col items-center gap-3">
+      <div
+        class={`flex h-12 w-12 items-center justify-center rounded-full text-base ${
+          props.active
+            ? "bg-primary-700 text-white"
+            : "bg-slate-200 text-slate-700"
+        }`}
+      >
+        {props.number}
+      </div>
+      <span
+        class={`text-base ${props.active ? "text-primary-700" : "text-slate-600"}`}
+      >
+        {props.label}
+      </span>
+    </div>
+  );
+}
+
+function MenuGridSkeleton() {
+  return (
+    <div class="grid grid-cols-2 gap-5">
+      {[1, 2].map((item) => (
+        <div class="h-64 animate-pulse rounded-[2rem] bg-white/80" />
+      ))}
+    </div>
   );
 }

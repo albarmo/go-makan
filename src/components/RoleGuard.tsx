@@ -18,7 +18,7 @@ const RoleGuard: ParentComponent<RoleGuardProps> = (props) => {
       return;
     }
     if (props.requiredRole && u.role !== props.requiredRole) {
-      navigate(u.role === "pemesan" ? "/" : "/buyer/orders", { replace: true });
+      navigate("/", { replace: true });
     }
   });
 

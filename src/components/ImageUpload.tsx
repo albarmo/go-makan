@@ -106,7 +106,7 @@ export default function ImageUpload(props: ImageUploadProps) {
                 <p class="text-sm text-primary-600">Mengupload...</p>
               </div>
             }>
-              <span class="text-3xl">📷</span>
+              <span class="text-xl">📷</span>
               <p class="mt-2 text-sm font-medium text-gray-600">
                 Klik untuk upload foto
               </p>

@@ -1,16 +1,26 @@
+import { Title } from "@solidjs/meta";
 import { createAsync, useAction, useParams } from "@solidjs/router";
 import { createSignal, For, Show, Suspense } from "solid-js";
-import { Title } from "@solidjs/meta";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import {
+  IconBike,
+  IconCalendar,
+  IconMessageCircle,
+  IconStore,
+  IconUser,
+} from "~/components/icons";
 import { useUser } from "~/lib/user-context";
-import { getOrderById, cancelOrderAction, markPurchasedAction } from "~/server/orders";
-import { formatRupiah, formatDateTime, statusBadgeClass, statusLabel } from "~/lib/utils";
-import { IconClock } from "~/components/icons";
+import { formatDateTime, formatRupiah, statusLabel } from "~/lib/utils";
+import {
+  cancelOrderAction,
+  getOrderById,
+  markPurchasedAction,
+} from "~/server/orders";
 
 export const route = {
   load: ({ params }: { params: { id: string } }) =>
-    getOrderById(parseInt(params.id)),
+    getOrderById(Number(params.id)),
 };
 
 export default function OrderDetailPage() {
@@ -23,24 +33,23 @@ export default function OrderDetailPage() {
 
 function OrderDetailContent() {
   const params = useParams<{ id: string }>();
-  const order = createAsync(() => getOrderById(parseInt(params.id)));
+  const order = createAsync(() => getOrderById(Number(params.id)));
   const { user } = useUser();
   const cancelOrder = useAction(cancelOrderAction);
   const markPurchased = useAction(markPurchasedAction);
   const [cancelReason, setCancelReason] = createSignal("");
-  const [showCancelForm, setShowCancelForm] = createSignal(false);
   const [submitting, setSubmitting] = createSignal(false);
 
   const isPemesan = () => user()?.role === "pemesan";
   const isPembeli = () => user()?.role === "pembeli";
 
   const handleCancel = async () => {
-    const o = order();
-    if (!o) return;
+    const currentOrder = order();
+    if (!currentOrder) return;
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.set("id", o.id.toString());
+      formData.set("id", String(currentOrder.id));
       formData.set("reason", cancelReason());
       formData.set("redirectTo", isPemesan() ? "/my-orders" : "/buyer/orders");
       await cancelOrder(formData);
@@ -49,15 +58,15 @@ function OrderDetailContent() {
     }
   };
 
-  const handleMarkPurchased = async () => {
-    const o = order();
-    const u = user();
-    if (!o || !u) return;
+  const handlePurchased = async () => {
+    const currentOrder = order();
+    const currentUser = user();
+    if (!currentOrder || !currentUser) return;
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.set("id", o.id.toString());
-      formData.set("buyerName", u.name);
+      formData.set("id", String(currentOrder.id));
+      formData.set("buyerName", currentUser.name);
       await markPurchased(formData);
     } catch {
       setSubmitting(false);
@@ -68,190 +77,180 @@ function OrderDetailContent() {
     <>
       <Title>Detail Order - Titip Makan</Title>
       <Layout title="Detail Order" showBack>
-        <Suspense
-          fallback={
-            <div class="space-y-3">
-              <div class="card h-32 animate-pulse bg-gray-100" />
-              <div class="card h-48 animate-pulse bg-gray-100" />
-            </div>
-          }
-        >
+        <Suspense fallback={<DetailSkeleton />}>
           <Show
             when={order()}
             fallback={
-              <div class="card p-8 text-center">
-                <p class="text-gray-500">Order tidak ditemukan</p>
+              <div class="tm-card p-8">
+                <p class="text-lg text-slate-600">Order tidak ditemukan.</p>
               </div>
             }
           >
-            {(o) => (
-              <div class="space-y-3">
-                {/* Status banner */}
-                <div class={`rounded-2xl p-4 ${
-                  o().status === "purchased"
-                    ? "bg-emerald-600"
-                    : o().status === "cancelled"
-                    ? "bg-red-500"
-                    : "bg-primary-700"
-                }`}>
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-                      <span class="text-xl">
-                        {o().status === "purchased" ? "✅" : o().status === "cancelled" ? "❌" : "⏳"}
-                      </span>
+            {(currentOrder) => {
+              const orderData = currentOrder();
+              const isPending = orderData.status === "submitted";
+              const isCancelled = orderData.status === "cancelled";
+
+              return (
+                <section class="space-y-7">
+                  <div class="flex flex-col items-center text-center">
+                    <div class="mb-7 flex h-28 w-28 items-center justify-center rounded-full bg-slate-200 text-primary-700 shadow-sm">
+                      <IconBike class="h-14 w-14" />
                     </div>
-                    <div>
-                      <p class="font-bold text-white">{statusLabel(o().status)}</p>
-                      <p class="text-xs text-white/70">Order #{o().id} · {o().storeName}</p>
+                    <h1 class="text-xl font-bold tracking-[-0.06em] text-slate-900">
+                      {isPending
+                        ? "Sedang Dibelikan"
+                        : statusLabel(orderData.status)}
+                    </h1>
+                    <p class="mt-4 text-lg leading-8 text-primary-700">
+                      {orderData.buyerName
+                        ? `${orderData.buyerName} sedang menangani pesananmu di ${orderData.storeName}.`
+                        : `Pesananmu ke ${orderData.storeName} sedang menunggu diproses.`}
+                    </p>
+                  </div>
+
+                  <div class="tm-card p-6">
+                    <h2 class="mb-5 text-xl font-semibold tracking-[-0.05em] text-slate-900">
+                      Informasi Pesanan
+                    </h2>
+                    <div class="tm-divider mb-5" />
+                    <div class="space-y-5">
+                      <InfoRow
+                        icon={<IconUser class="h-6 w-6" />}
+                        label="Yang Nitip"
+                        value={orderData.requesterName}
+                      />
+                      <Show when={orderData.buyerName}>
+                        <InfoRow
+                          icon={<IconUser class="h-6 w-6" />}
+                          label="Yang Belikan"
+                          value={orderData.buyerName!}
+                        />
+                      </Show>
+                      <InfoRow
+                        icon={<IconStore class="h-6 w-6" />}
+                        label="Store"
+                        value={orderData.storeName}
+                      />
+                      <InfoRow
+                        icon={<IconCalendar class="h-6 w-6" />}
+                        label="Tanggal & Waktu"
+                        value={formatDateTime(orderData.createdAt)}
+                      />
                     </div>
                   </div>
-                </div>
 
-                {/* Order info */}
-                <div class="card overflow-hidden">
-                  <div class="divide-y divide-gray-50">
-                    <InfoRow label="Yang Nitip" value={o().requesterName} />
-                    <Show when={o().buyerName}>
-                      <InfoRow label="Yang Belikan" value={o().buyerName!} />
-                    </Show>
-                    <InfoRow label="Toko" value={o().storeName} />
-                    <div class="flex items-center gap-3 px-4 py-3">
-                      <p class="w-28 shrink-0 text-xs text-gray-400">Tanggal</p>
-                      <div class="flex items-center gap-1.5">
-                        <IconClock class="h-3.5 w-3.5 text-gray-400" />
-                        <p class="text-sm font-medium text-gray-800">{formatDateTime(o().createdAt)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  <div class="tm-card p-6">
+                    <h2 class="mb-5 text-xl font-semibold tracking-[-0.05em] text-slate-900">
+                      Daftar Menu
+                    </h2>
+                    <div class="tm-divider mb-5" />
 
-                <Show when={o().notes}>
-                  <div class="rounded-xl bg-amber-50 px-4 py-3">
-                    <p class="text-xs font-semibold text-amber-700">Catatan Order</p>
-                    <p class="mt-0.5 text-sm text-amber-800">{o().notes}</p>
-                  </div>
-                </Show>
-
-                <Show when={o().cancellationReason}>
-                  <div class="rounded-xl bg-red-50 px-4 py-3">
-                    <p class="text-xs font-semibold text-red-600">Alasan Dibatalkan</p>
-                    <p class="mt-0.5 text-sm text-red-700">{o().cancellationReason}</p>
-                  </div>
-                </Show>
-
-                {/* Order items */}
-                <div class="card overflow-hidden">
-                  <div class="border-b border-gray-100 px-4 py-3">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-gray-400">Daftar Menu</p>
-                  </div>
-                  <div class="divide-y divide-gray-50">
-                    <For each={o().items}>
+                    <For each={orderData.items}>
                       {(item) => (
-                        <div class="px-4 py-3">
-                          <div class="flex items-start justify-between gap-2">
-                            <div class="flex-1">
-                              <p class="font-medium text-gray-900">{item.menuNameSnapshot}</p>
-                              <p class="text-xs text-gray-400">
-                                {formatRupiah(item.priceSnapshot)} × {item.quantity}
+                        <div class="border-b border-slate-200 py-5 last:border-b-0">
+                          <div class="mb-3 flex items-start justify-between gap-4">
+                            <div>
+                              <p class="text-xl font-semibold text-slate-900">
+                                {item.menuNameSnapshot}
                               </p>
-                              <Show when={item.notes}>
-                                <p class="mt-0.5 text-xs italic text-gray-400">"{item.notes}"</p>
-                              </Show>
+                              <p class="mt-2 text-base text-primary-700">
+                                Qty: {item.quantity}
+                              </p>
                             </div>
-                            <p class="shrink-0 font-semibold text-primary-600">
+                            <p class="text-xl text-slate-800">
                               {formatRupiah(item.subtotal)}
                             </p>
                           </div>
+
+                          <Show when={item.notes}>
+                            <div class="tm-card-soft px-4 py-4">
+                              <p class="text-lg italic leading-8 text-slate-700">
+                                Note: "{item.notes}"
+                              </p>
+                            </div>
+                          </Show>
                         </div>
                       )}
                     </For>
-                  </div>
-                  <div class="flex items-center justify-between border-t border-gray-100 px-4 py-3">
-                    <span class="font-bold text-gray-900">Total</span>
-                    <span class="text-lg font-bold text-primary-600">
-                      {formatRupiah(o().totalAmount)}
-                    </span>
-                  </div>
-                </div>
 
-                {/* Actions */}
-                <Show when={o().status === "submitted"}>
-                  <Show when={isPemesan()}>
-                    <Show
-                      when={!showCancelForm()}
-                      fallback={
-                        <div class="card p-4 space-y-3">
-                          <p class="text-sm font-semibold text-gray-700">Alasan pembatalan (opsional)</p>
-                          <textarea
-                            class="input resize-none text-sm"
-                            rows="2"
-                            placeholder="Tidak jadi memesan, dll"
-                            value={cancelReason()}
-                            onInput={(e) => setCancelReason(e.currentTarget.value)}
-                          />
-                          <div class="grid grid-cols-2 gap-3">
-                            <button type="button" onClick={() => setShowCancelForm(false)} class="btn-secondary">
-                              Batal
-                            </button>
-                            <button type="button" onClick={handleCancel} disabled={submitting()} class="btn-danger">
-                              {submitting() ? "..." : "Batalkan"}
-                            </button>
-                          </div>
-                        </div>
-                      }
-                    >
-                      <button type="button" onClick={() => setShowCancelForm(true)} class="btn-secondary w-full">
-                        Batalkan Order
-                      </button>
-                    </Show>
-                  </Show>
+                    <div class="border-t border-slate-200 pt-5">
+                      <div class="mb-4 flex justify-between text-xl text-slate-800">
+                        <span>Subtotal</span>
+                        <span>{formatRupiah(orderData.totalAmount)}</span>
+                      </div>
+                      <div class="mb-4 flex justify-between text-xl text-primary-700">
+                        <span>Biaya Titip</span>
+                        <span>Rp 0</span>
+                      </div>
+                      <div class="flex justify-between text-xl font-bold tracking-[-0.05em]">
+                        <span>Total Bayar</span>
+                        <span class="text-primary-700">
+                          {formatRupiah(orderData.totalAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-                  <Show when={isPembeli()}>
-                    <div class="space-y-2">
-                      <button
-                        type="button"
-                        onClick={handleMarkPurchased}
-                        disabled={submitting()}
-                        class="btn-primary w-full"
-                      >
-                        {submitting() ? "..." : "Tandai Sudah Dibeli ✓"}
-                      </button>
-                      <Show
-                        when={!showCancelForm()}
-                        fallback={
-                          <div class="card p-4 space-y-3">
-                            <p class="text-sm font-semibold text-gray-700">Alasan pembatalan</p>
-                            <textarea
-                              class="input resize-none text-sm"
-                              rows="2"
-                              placeholder="Contoh: stok habis, toko tutup"
-                              value={cancelReason()}
-                              onInput={(e) => setCancelReason(e.currentTarget.value)}
-                            />
-                            <div class="grid grid-cols-2 gap-3">
-                              <button type="button" onClick={() => setShowCancelForm(false)} class="btn-secondary">
-                                Kembali
-                              </button>
-                              <button type="button" onClick={handleCancel} disabled={submitting()} class="btn-danger">
-                                {submitting() ? "..." : "Batalkan"}
-                              </button>
-                            </div>
-                          </div>
-                        }
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setShowCancelForm(true)}
-                          class="btn-secondary w-full !text-red-500"
-                        >
-                          Item Tidak Tersedia
-                        </button>
-                      </Show>
+                  <Show when={orderData.notes}>
+                    <div class="tm-panel flex items-center gap-4">
+                      <div class="flex h-14 w-14 items-center justify-center rounded-full bg-sky-100 text-primary-700">
+                        <IconMessageCircle class="h-7 w-7" />
+                      </div>
+                      <p class="text-lg leading-8 text-slate-700">
+                        {orderData.notes}
+                      </p>
                     </div>
                   </Show>
-                </Show>
-              </div>
-            )}
+
+                  <Show when={isPending && isPembeli()}>
+                    <button
+                      type="button"
+                      onClick={handlePurchased}
+                      disabled={submitting()}
+                      class="btn-primary w-full text-lg"
+                    >
+                      {submitting() ? "Memproses..." : "Tandai Sudah Dibeli"}
+                    </button>
+                  </Show>
+
+                  <Show when={isPending}>
+                    <Show when={isCancelled}>
+                      <div class="tm-panel text-red-500">
+                        {orderData.cancellationReason}
+                      </div>
+                    </Show>
+
+                    <Show when={isPemesan() || isPembeli()}>
+                      <div class="space-y-4">
+                        <textarea
+                          class="input min-h-[7rem] resize-none text-base"
+                          placeholder={
+                            isPembeli()
+                              ? "Batalkan karena tidak tersedia..."
+                              : "Alasan batal (opsional)"
+                          }
+                          value={cancelReason()}
+                          onInput={(e) =>
+                            setCancelReason(e.currentTarget.value)
+                          }
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCancel}
+                          disabled={submitting()}
+                          class={`w-full ${isPembeli() ? "btn-secondary text-red-500" : "btn-secondary"}`}
+                        >
+                          {isPembeli()
+                            ? "Batalkan karena tidak tersedia"
+                            : "Batalkan Order"}
+                        </button>
+                      </div>
+                    </Show>
+                  </Show>
+                </section>
+              );
+            }}
           </Show>
         </Suspense>
       </Layout>
@@ -259,11 +258,28 @@ function OrderDetailContent() {
   );
 }
 
-function InfoRow(props: { label: string; value: string }) {
+function InfoRow(props: { icon: JSX.Element; label: string; value: string }) {
   return (
-    <div class="flex items-center gap-3 px-4 py-3">
-      <p class="w-28 shrink-0 text-xs text-gray-400">{props.label}</p>
-      <p class="text-sm font-semibold text-gray-800">{props.value}</p>
+    <div class="flex items-start gap-4">
+      <div class="mt-1 text-primary-700">{props.icon}</div>
+      <div>
+        <p class="text-sm font-medium uppercase tracking-[0.12em] text-primary-700">
+          {props.label}
+        </p>
+        <p class="mt-1 text-lg leading-8 text-slate-900">
+          {props.value}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DetailSkeleton() {
+  return (
+    <div class="space-y-6">
+      <div class="h-40 animate-pulse rounded-[2rem] bg-white/80" />
+      <div class="h-80 animate-pulse rounded-[2rem] bg-white/80" />
+      <div class="h-96 animate-pulse rounded-[2rem] bg-white/80" />
     </div>
   );
 }

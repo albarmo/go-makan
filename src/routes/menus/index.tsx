@@ -1,12 +1,11 @@
-import { createAsync } from "@solidjs/router";
-import { createSignal, For, Show, Suspense } from "solid-js";
 import { Title } from "@solidjs/meta";
-import { A } from "@solidjs/router";
+import { A, createAsync } from "@solidjs/router";
+import { createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
-import { getMenus, toggleMenuAction } from "~/server/menus";
+import { IconPlus, IconSearch } from "~/components/icons";
 import { formatRupiah } from "~/lib/utils";
-import { IconEdit, IconPlus, IconSearch } from "~/components/icons";
+import { getMenus } from "~/server/menus";
 
 export const route = {
   load: () => getMenus(),
@@ -22,177 +21,166 @@ export default function MenusPage() {
 
 function MenusContent() {
   const menus = createAsync(() => getMenus());
-  const [filterStore, setFilterStore] = createSignal<string>("all");
   const [search, setSearch] = createSignal("");
+  const [selectedStore, setSelectedStore] = createSignal("all");
 
-  const storeNames = () => {
-    const names = new Set((menus() ?? []).map((m) => m.storeName));
-    return Array.from(names).sort();
-  };
+  const storeOptions = () =>
+    Array.from(new Set((menus() ?? []).map((menu) => menu.storeName)));
 
-  const filtered = () => {
-    const all = menus() ?? [];
-    const q = search().toLowerCase();
-    return all
-      .filter((m) => filterStore() === "all" || m.storeName === filterStore())
+  const filteredMenus = () => {
+    const query = search().toLowerCase();
+    return (menus() ?? [])
       .filter(
-        (m) =>
-          !q ||
-          m.name.toLowerCase().includes(q) ||
-          m.storeName.toLowerCase().includes(q)
+        (menu) =>
+          selectedStore() === "all" || menu.storeName === selectedStore(),
+      )
+      .filter(
+        (menu) =>
+          !query ||
+          menu.name.toLowerCase().includes(query) ||
+          menu.storeName.toLowerCase().includes(query),
       );
   };
 
   return (
     <>
       <Title>Menu - Titip Makan</Title>
-      <Layout title="Daftar Menu">
-        {/* Search */}
-        <div class="relative mb-3">
-          <IconSearch class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            class="input pl-9"
-            placeholder="Cari menu..."
-            value={search()}
-            onInput={(e) => setSearch(e.currentTarget.value)}
-          />
-        </div>
+      <Layout title="Titip Makan">
+        <section class="space-y-6">
+          <h1 class="tm-page-title">Menu</h1>
 
-        <Suspense
-          fallback={
-            <div class="space-y-2">
-              {[1, 2, 3, 4].map(() => (
-                <div class="card h-20 animate-pulse bg-gray-100" />
-              ))}
-            </div>
-          }
-        >
-          {/* Store filter pills */}
-          <Show when={storeNames().length > 1}>
-            <div class="mb-3 flex gap-2 overflow-x-auto pb-1">
-              <button
-                onClick={() => setFilterStore("all")}
-                class={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  filterStore() === "all"
-                    ? "bg-primary-600 text-white"
-                    : "bg-white text-gray-600 border border-gray-200"
-                }`}
-              >
-                Semua
-              </button>
-              <For each={storeNames()}>
-                {(name) => (
-                  <button
-                    onClick={() => setFilterStore(name)}
-                    class={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                      filterStore() === name
-                        ? "bg-primary-600 text-white"
-                        : "bg-white text-gray-600 border border-gray-200"
-                    }`}
-                  >
-                    {name}
-                  </button>
-                )}
-              </For>
-            </div>
-          </Show>
+          <div class="relative">
+            <IconSearch class="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-primary-700" />
+            <input
+              type="search"
+              class="input pl-16 text-lg"
+              placeholder="Cari makanan..."
+              value={search()}
+              onInput={(e) => setSearch(e.currentTarget.value)}
+            />
+          </div>
 
-          <Show
-            when={filtered().length > 0}
-            fallback={
-              <div class="card p-10 text-center">
-                <p class="text-3xl">🍽️</p>
-                <p class="mt-2 font-semibold text-gray-700">
-                  {search() || filterStore() !== "all"
-                    ? "Menu tidak ditemukan"
-                    : "Belum ada menu"}
-                </p>
-                <Show when={!search() && filterStore() === "all"}>
-                  <A href="/menus/new" class="btn-primary mt-4 inline-flex">
-                    Tambah Menu
-                  </A>
-                </Show>
-              </div>
-            }
-          >
-            <div class="space-y-2">
-              <For each={filtered()}>
-                {(menu) => (
-                  <div class="card flex items-center gap-3 p-3">
-                    {/* Thumbnail */}
-                    <div class="shrink-0">
-                      <Show
-                        when={menu.imageUrl}
-                        fallback={
-                          <div class="flex h-16 w-16 items-center justify-center rounded-xl bg-gray-100 text-2xl">
-                            🍽️
-                          </div>
-                        }
-                      >
-                        <img
-                          src={menu.imageUrl!}
-                          alt={menu.name}
-                          class="h-16 w-16 rounded-xl object-cover"
-                        />
-                      </Show>
-                    </div>
+          <div class="flex gap-3 overflow-x-auto pb-1">
+            <StorePill
+              label="Semua"
+              active={selectedStore() === "all"}
+              onClick={() => setSelectedStore("all")}
+            />
+            <For each={storeOptions()}>
+              {(storeName) => (
+                <StorePill
+                  label={storeName}
+                  active={selectedStore() === storeName}
+                  onClick={() => setSelectedStore(storeName)}
+                />
+              )}
+            </For>
+          </div>
 
-                    <div class="flex-1 min-w-0">
-                      <p class="font-semibold text-gray-900 truncate">{menu.name}</p>
-                      <p class="text-xs font-medium text-primary-600">{menu.storeName}</p>
-                      <p class="mt-0.5 text-sm font-bold text-gray-800">
-                        {formatRupiah(menu.price)}
-                      </p>
-                    </div>
-
-                    <div class="flex shrink-0 items-center gap-1.5">
-                      <span
-                        class={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          menu.isAvailable
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {menu.isAvailable ? "Tersedia" : "Habis"}
-                      </span>
-                      <A
-                        href={`/menus/${menu.id}/edit`}
-                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
-                      >
-                        <IconEdit class="h-3.5 w-3.5" />
-                      </A>
-                      <form method="post" action={toggleMenuAction}>
-                        <input type="hidden" name="id" value={menu.id} />
-                        <input type="hidden" name="isAvailable" value={menu.isAvailable.toString()} />
-                        <button
-                          type="submit"
-                          class={`flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold transition-colors ${
+          <Suspense fallback={<MenuSkeleton />}>
+            <Show
+              when={filteredMenus().length > 0}
+              fallback={
+                <div class="tm-card p-8">
+                  <p class="text-lg text-slate-600">
+                    Menu belum tersedia untuk filter ini.
+                  </p>
+                </div>
+              }
+            >
+              <div class="space-y-6">
+                <For each={filteredMenus()}>
+                  {(menu) => (
+                    <div class="tm-card p-7">
+                      <div class="mb-4 flex items-start justify-between gap-4">
+                        <div>
+                          <p class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+                            {menu.name}
+                          </p>
+                          <p class="mt-2 text-lg text-primary-700">
+                            {menu.storeName}
+                          </p>
+                        </div>
+                        <span
+                          class={
                             menu.isAvailable
-                              ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                              : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                          }`}
+                              ? "badge-submitted"
+                              : "badge-cancelled"
+                          }
                         >
-                          {menu.isAvailable ? "−" : "+"}
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                )}
-              </For>
-            </div>
-          </Show>
-        </Suspense>
+                          {menu.isAvailable ? "Tersedia" : "Habis"}
+                        </span>
+                      </div>
 
-        {/* FAB */}
-        <A
-          href="/menus/new"
-          class="fixed bottom-20 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 active:scale-95 transition-all z-40"
-          aria-label="Tambah Menu"
-        >
-          <IconPlus class="h-6 w-6" />
-        </A>
+                      <p class="mb-5 text-lg leading-8 text-slate-700">
+                        {menu.description ||
+                          "Menu favorit yang cocok untuk makan siang kantor."}
+                      </p>
+
+                      <div class="tm-divider mb-5" />
+
+                      <div class="flex items-end justify-between gap-4">
+                        <p class="text-xl font-bold tracking-[-0.06em] text-primary-700">
+                          {formatRupiah(menu.price)}
+                        </p>
+                        <Show
+                          when={menu.isAvailable}
+                          fallback={
+                            <button
+                              type="button"
+                              class="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-slate-200 text-slate-500"
+                            >
+                              <IconPlus class="h-8 w-8" />
+                            </button>
+                          }
+                        >
+                          <A
+                            href={`/orders/new`}
+                            class="inline-flex items-center gap-3 rounded-[1.5rem] bg-primary-700 px-7 py-5 text-lg font-semibold text-white"
+                          >
+                            <IconPlus class="h-7 w-7" />
+                            Tambah Menu
+                          </A>
+                        </Show>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </Show>
+          </Suspense>
+        </section>
       </Layout>
     </>
+  );
+}
+
+function StorePill(props: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      class={`shrink-0 rounded-full px-6 py-4 text-lg font-semibold transition-all ${
+        props.active
+          ? "bg-primary-700 text-white"
+          : "bg-slate-200 text-slate-700"
+      }`}
+    >
+      {props.label}
+    </button>
+  );
+}
+
+function MenuSkeleton() {
+  return (
+    <div class="space-y-6">
+      {[1, 2, 3].map((item) => (
+        <div class="h-72 animate-pulse rounded-[2rem] bg-white/80" />
+      ))}
+    </div>
   );
 }

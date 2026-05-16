@@ -14,13 +14,13 @@ const Layout: ParentComponent<LayoutProps> = (props) => {
   const { user } = useUser();
 
   return (
-    <div class="min-h-screen bg-slate-100">
+    <div class="tm-app-shell">
       <Header
         title={props.title}
         showBack={props.showBack}
         showUser={props.showUser}
       />
-      <main class="mx-auto max-w-lg px-4 py-4 pb-24">
+      <main class="tm-page">
         {props.children}
       </main>
       <Show when={user() && !props.noBottomNav}>

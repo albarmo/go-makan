@@ -1,18 +1,16 @@
-import { createAsync } from "@solidjs/router";
-import { createMemo, For, Show, Suspense } from "solid-js";
 import { Title } from "@solidjs/meta";
-import { A } from "@solidjs/router";
+import { A, createAsync } from "@solidjs/router";
+import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { IconCalendar } from "~/components/icons";
 import { useUser } from "~/lib/user-context";
-import { getMyOrders } from "~/server/orders";
 import {
+  formatRelativeOrderTime,
   formatRupiah,
-  formatDateTime,
-  statusBadgeClass,
   statusLabel,
 } from "~/lib/utils";
-import { IconArrowRight, IconShoppingBag } from "~/components/icons";
+import { getMyOrders } from "~/server/orders";
 
 export default function MyOrdersPage() {
   return (
@@ -25,133 +23,154 @@ export default function MyOrdersPage() {
 function MyOrdersContent() {
   const { user } = useUser();
   const myOrders = createAsync(() => getMyOrders(user()?.name ?? ""));
+  const [filter, setFilter] = createSignal<"all" | "submitted">("all");
 
-  const activeOrders = createMemo(() =>
-    (myOrders() ?? []).filter((o) => o.status === "submitted")
-  );
-  const doneOrders = createMemo(() =>
-    (myOrders() ?? []).filter((o) => o.status !== "submitted")
-  );
-
-  const totalBelanja = createMemo(() =>
-    (myOrders() ?? [])
-      .filter((o) => o.status !== "cancelled")
-      .reduce((sum, o) => sum + o.totalAmount, 0)
-  );
+  const visibleOrders = createMemo(() => {
+    const orders = myOrders() ?? [];
+    if (filter() === "all") return orders;
+    return orders.filter((order) => order.status === "submitted");
+  });
 
   return (
     <>
-      <Title>Pesananku - Titip Makan</Title>
-      <Layout title="Pesananku">
-        <Suspense
-          fallback={
-            <div class="space-y-3">
-              {[1, 2].map(() => (
-                <div class="card h-24 animate-pulse bg-gray-100" />
-              ))}
-            </div>
-          }
-        >
-          <Show
-            when={(myOrders() ?? []).length > 0}
-            fallback={
-              <div class="card p-10 text-center">
-                <p class="text-4xl">🍱</p>
-                <p class="mt-3 font-bold text-gray-800">
-                  Belum ada pesanan hari ini
-                </p>
-                <p class="mt-1 text-sm text-gray-400">
-                  Yuk, titip beli makan siang!
-                </p>
-                <A href="/orders/new" class="btn-primary mt-5 inline-flex">
-                  Titip Beli Sekarang
-                </A>
-              </div>
-            }
-          >
-            {/* Summary strip */}
-            <div class="mb-4 flex items-center justify-between rounded-2xl bg-primary-700 px-4 py-3.5">
-              <div>
-                <p class="text-xs text-primary-300">Total belanja hari ini</p>
-                <p class="text-lg font-bold text-white">{formatRupiah(totalBelanja())}</p>
-              </div>
-              <A href="/orders/new" class="flex items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-xs font-bold text-primary-700 hover:bg-primary-50">
-                <IconShoppingBag class="h-3.5 w-3.5" />
-                Titip Lagi
-              </A>
-            </div>
+      <Title>Order Saya - Titip Makan</Title>
+      <Layout title="Titip Makan">
+        <section class="space-y-6">
+          <h1 class="tm-page-title">Order Saya</h1>
 
-            {/* Active orders */}
-            <Show when={activeOrders().length > 0}>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Menunggu Dibeli ({activeOrders().length})
-              </p>
-              <div class="mb-4 space-y-2">
-                <For each={activeOrders()}>
-                  {(order) => <OrderCard order={order} />}
+          <div class="flex gap-3 overflow-x-auto pb-1">
+            <button
+              type="button"
+              class="tm-panel flex shrink-0 items-center gap-3 px-5 py-4 text-lg font-semibold text-slate-800"
+            >
+              <IconCalendar class="h-6 w-6 text-slate-700" />
+              Pilih Tanggal
+            </button>
+            <OrderFilter
+              label="Semua"
+              active={filter() === "all"}
+              onClick={() => setFilter("all")}
+            />
+            <OrderFilter
+              label="Belum Dibeli"
+              active={filter() === "submitted"}
+              onClick={() => setFilter("submitted")}
+            />
+          </div>
+
+          <Suspense fallback={<MyOrdersSkeleton />}>
+            <Show
+              when={visibleOrders().length > 0}
+              fallback={
+                <div class="tm-card p-8">
+                  <p class="text-lg text-slate-600">
+                    Belum ada order untuk ditampilkan.
+                  </p>
+                </div>
+              }
+            >
+              <div class="space-y-6">
+                <For each={visibleOrders()}>
+                  {(order) => (
+                    <div class="tm-card p-7">
+                      <div class="mb-5 flex items-start justify-between gap-4">
+                        <div class="flex items-start gap-4">
+                          <div class="flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-slate-200 text-xl">
+                            {order.storeName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p class="text-lg font-semibold leading-tight tracking-[-0.05em] text-slate-900">
+                              {order.storeName}
+                            </p>
+                            <p class="mt-2 text-lg text-slate-500">
+                              {formatRelativeOrderTime(order.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          class={
+                            order.status === "purchased"
+                              ? "badge-submitted"
+                              : order.status === "cancelled"
+                                ? "badge-cancelled"
+                                : "badge-submitted"
+                          }
+                        >
+                          {order.status === "submitted"
+                            ? "Belum Dibeli"
+                            : statusLabel(order.status)}
+                        </span>
+                      </div>
+
+                      <div class="tm-divider mb-5" />
+
+                      <div class="mb-6 flex items-end justify-between gap-4">
+                        <p class="max-w-[12rem] text-xl leading-8 text-slate-800">
+                          {order.itemSummary}
+                        </p>
+                        <p class="text-xl font-bold tracking-[-0.06em] text-primary-700">
+                          {formatRupiah(order.totalAmount)}
+                        </p>
+                      </div>
+
+                      <Show
+                        when={order.status === "submitted"}
+                        fallback={
+                          <A
+                            href={`/orders/${order.id}`}
+                            class="btn-secondary w-full"
+                          >
+                            Detail
+                          </A>
+                        }
+                      >
+                        <div class="grid grid-cols-2 gap-4">
+                          <A href={`/orders/${order.id}`} class="btn-secondary">
+                            Batalkan
+                          </A>
+                          <A href={`/orders/${order.id}`} class="btn-primary">
+                            Detail
+                          </A>
+                        </div>
+                      </Show>
+                    </div>
+                  )}
                 </For>
               </div>
             </Show>
-
-            {/* Done orders */}
-            <Show when={doneOrders().length > 0}>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Selesai / Dibatalkan
-              </p>
-              <div class="space-y-2">
-                <For each={doneOrders()}>
-                  {(order) => <OrderCard order={order} />}
-                </For>
-              </div>
-            </Show>
-          </Show>
-        </Suspense>
+          </Suspense>
+        </section>
       </Layout>
     </>
   );
 }
 
-function OrderCard(props: {
-  order: {
-    id: number;
-    storeName: string;
-    status: string;
-    totalAmount: number;
-    createdAt: Date;
-    cancellationReason: string | null;
-    buyerName: string | null;
-  };
+function OrderFilter(props: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
 }) {
-  const o = () => props.order;
   return (
-    <A
-      href={`/orders/${o().id}`}
-      class="card flex items-center gap-3 p-4 hover:shadow-md active:scale-[0.98] transition-all"
+    <button
+      type="button"
+      onClick={props.onClick}
+      class={`shrink-0 rounded-full px-8 py-4 text-lg font-semibold transition-all ${
+        props.active
+          ? "bg-[#35bced] text-primary-700"
+          : "bg-slate-200 text-slate-700"
+      }`}
     >
-      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50">
-        <span class="text-lg">🏪</span>
-      </div>
-      <div class="flex-1 min-w-0">
-        <p class="font-semibold text-gray-900 truncate">{o().storeName}</p>
-        <p class="text-xs text-gray-400">{formatDateTime(o().createdAt)}</p>
-        <Show when={o().buyerName}>
-          <p class="text-xs text-gray-500">
-            Dibeli oleh <span class="font-medium text-primary-600">{o().buyerName}</span>
-          </p>
-        </Show>
-        <Show when={o().cancellationReason}>
-          <p class="text-xs text-red-400 italic">{o().cancellationReason}</p>
-        </Show>
-      </div>
-      <div class="flex shrink-0 flex-col items-end gap-1">
-        <span class={statusBadgeClass(o().status)}>
-          {statusLabel(o().status)}
-        </span>
-        <span class="text-sm font-bold text-primary-600">
-          {formatRupiah(o().totalAmount)}
-        </span>
-      </div>
-      <IconArrowRight class="h-4 w-4 shrink-0 text-gray-300" />
-    </A>
+      {props.label}
+    </button>
+  );
+}
+
+function MyOrdersSkeleton() {
+  return (
+    <div class="space-y-6">
+      {[1, 2, 3].map((item) => (
+        <div class="h-72 animate-pulse rounded-[2rem] bg-white/80" />
+      ))}
+    </div>
   );
 }

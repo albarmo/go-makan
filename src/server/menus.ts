@@ -42,6 +42,27 @@ export const getMenusByStore = query(async (storeId: number) => {
     .orderBy(menus.name);
 }, "getMenusByStore");
 
+export const getAvailableMenus = query(async () => {
+  "use server";
+  return await db
+    .select({
+      id: menus.id,
+      storeId: menus.storeId,
+      name: menus.name,
+      description: menus.description,
+      price: menus.price,
+      imageUrl: menus.imageUrl,
+      isAvailable: menus.isAvailable,
+      createdAt: menus.createdAt,
+      updatedAt: menus.updatedAt,
+      storeName: stores.name,
+    })
+    .from(menus)
+    .innerJoin(stores, eq(menus.storeId, stores.id))
+    .where(and(eq(menus.isAvailable, true), eq(stores.isActive, true)))
+    .orderBy(stores.name, menus.name);
+}, "getAvailableMenus");
+
 export const getMenuById = query(async (id: number) => {
   "use server";
   const [menu] = await db.select().from(menus).where(eq(menus.id, id));

@@ -29,6 +29,17 @@ export function createOrdersEventStream() {
   let currentSubscriber: OrdersSubscriber | null = null;
   let keepAlive: ReturnType<typeof setInterval> | null = null;
 
+  const cleanup = () => {
+    if (keepAlive) {
+      clearInterval(keepAlive);
+      keepAlive = null;
+    }
+    if (currentSubscriber) {
+      ordersSubscribers.delete(currentSubscriber);
+      currentSubscriber = null;
+    }
+  };
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       currentSubscriber = {
@@ -50,14 +61,7 @@ export function createOrdersEventStream() {
       }, 20000);
     },
     cancel() {
-      if (keepAlive) {
-        clearInterval(keepAlive);
-        keepAlive = null;
-      }
-      if (currentSubscriber) {
-        ordersSubscribers.delete(currentSubscriber);
-        currentSubscriber = null;
-      }
+      cleanup();
     },
   });
 

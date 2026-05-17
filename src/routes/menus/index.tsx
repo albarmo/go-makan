@@ -1,9 +1,10 @@
 import { Title } from "@solidjs/meta";
-import { A, createAsync } from "@solidjs/router";
+import { A, createAsync, useNavigate } from "@solidjs/router";
+import { Plus as IconPlus, Search as IconSearch } from "lucide-solid";
 import { createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
-import { IconPlus, IconSearch } from "~/components/icons";
+import { useOrderDraft } from "~/lib/order-draft-context";
 import { formatRupiah } from "~/lib/utils";
 import { getMenus } from "~/server/menus";
 
@@ -20,6 +21,8 @@ export default function MenusPage() {
 }
 
 function MenusContent() {
+  const navigate = useNavigate();
+  const draft = useOrderDraft();
   const menus = createAsync(() => getMenus());
   const [search, setSearch] = createSignal("");
   const [selectedStore, setSelectedStore] = createSignal("all");
@@ -91,7 +94,10 @@ function MenusContent() {
               <div class="space-y-6">
                 <For each={filteredMenus()}>
                   {(menu) => (
-                    <div class="tm-card overflow-hidden p-7">
+                    <div
+                      class="tm-card overflow-hidden p-7 cursor-pointer"
+                      onClick={() => void navigate(`/menus/${menu.id}`)}
+                    >
                       <Show
                         when={menu.imageUrl}
                         fallback={
@@ -138,19 +144,59 @@ function MenusContent() {
                           fallback={
                             <button
                               type="button"
+                              onClick={(e) => e.stopPropagation()}
                               class="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-200 text-slate-500"
                             >
                               <IconPlus class="h-8 w-8" />
                             </button>
                           }
                         >
-                          <A
-                            href={`/orders/new`}
-                            class="inline-flex items-center gap-3 rounded-lg bg-primary-700 px-7 py-5  font-semibold text-white"
-                          >
-                            <IconPlus class="h-7 w-7" />
-                            Tambah Menu
-                          </A>
+                          <div class="flex items-center gap-2">
+                            <Show when={draft.getItem(menu.id)}>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  draft.setQuantity(
+                                    {
+                                      id: menu.id,
+                                      storeId: menu.storeId,
+                                      storeName: menu.storeName,
+                                      name: menu.name,
+                                      price: menu.price,
+                                    },
+                                    (draft.getItem(menu.id)?.quantity ?? 0) - 1,
+                                  );
+                                }}
+                                class="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100 text-slate-700"
+                              >
+                                -
+                              </button>
+                              <span class="min-w-5 text-center text-sm font-semibold text-slate-700">
+                                {draft.getItem(menu.id)?.quantity}
+                              </span>
+                            </Show>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                draft.setQuantity(
+                                  {
+                                    id: menu.id,
+                                    storeId: menu.storeId,
+                                    storeName: menu.storeName,
+                                    name: menu.name,
+                                    price: menu.price,
+                                  },
+                                  (draft.getItem(menu.id)?.quantity ?? 0) + 1,
+                                );
+                              }}
+                              class="inline-flex items-center gap-3 rounded-lg bg-primary-700 px-5 py-4 font-semibold text-white"
+                            >
+                              <IconPlus class="h-5 w-5" />
+                              Tambah
+                            </button>
+                          </div>
                         </Show>
                       </div>
                     </div>

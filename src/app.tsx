@@ -2,6 +2,7 @@ import { MetaProvider, Title } from "@solidjs/meta";
 import { Router } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
 import { Suspense } from "solid-js";
+import { OrderDraftProvider } from "~/lib/order-draft-context";
 import { UserProvider } from "~/lib/user-context";
 import "./global.css";
 
@@ -12,7 +13,9 @@ export default function App() {
         <MetaProvider>
           <Title>Titip Makan</Title>
           <UserProvider>
-            <Suspense>{props.children}</Suspense>
+            <OrderDraftProvider>
+              <Suspense>{props.children}</Suspense>
+            </OrderDraftProvider>
           </UserProvider>
         </MetaProvider>
       )}

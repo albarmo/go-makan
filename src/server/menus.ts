@@ -65,7 +65,27 @@ export const getAvailableMenus = query(async () => {
 
 export const getMenuById = query(async (id: number) => {
   "use server";
-  const [menu] = await db.select().from(menus).where(eq(menus.id, id));
+  const [menu] = await db
+    .select({
+      id: menus.id,
+      storeId: menus.storeId,
+      name: menus.name,
+      description: menus.description,
+      price: menus.price,
+      imageUrl: menus.imageUrl,
+      isAvailable: menus.isAvailable,
+      createdAt: menus.createdAt,
+      updatedAt: menus.updatedAt,
+      storeName: stores.name,
+      storeDescription: stores.description,
+      storeAddress: stores.address,
+      storePhone: stores.phone,
+      storeImageUrl: stores.imageUrl,
+      storeIsActive: stores.isActive,
+    })
+    .from(menus)
+    .innerJoin(stores, eq(menus.storeId, stores.id))
+    .where(eq(menus.id, id));
   return menu ?? null;
 }, "getMenuById");
 

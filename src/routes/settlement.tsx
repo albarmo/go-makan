@@ -1,9 +1,13 @@
 import { Title } from "@solidjs/meta";
 import { A, createAsync } from "@solidjs/router";
+import {
+  Calendar as IconCalendar,
+  Receipt as IconReceipt,
+  Wallet as IconWallet,
+} from "lucide-solid";
 import { createMemo, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
-import { IconCalendar, IconReceipt, IconWallet } from "~/components/icons";
 import { useUser } from "~/lib/user-context";
 import {
   formatRupiah,
@@ -11,9 +15,8 @@ import {
   paymentStatusLabel,
   statusBadgeClass,
   statusLabel,
-  type OrderListItem,
 } from "~/lib/utils";
-import { getMyOrders } from "~/server/orders";
+import { getMyOrders, type OrderListItem } from "~/server/orders";
 
 export default function SettlementPage() {
   return (
@@ -143,7 +146,7 @@ function SettlementContent() {
                       <div class="flex items-start justify-between gap-4">
                         <div>
                           <p class="text-lg font-semibold leading-tight text-slate-900">
-                            {order.storeName}
+                            {order.storeSummary}
                           </p>
                           <p class="mt-2 text-base text-primary-700">
                             {order.buyerName

@@ -1,35 +1,51 @@
-import { query } from "@solidjs/router";
-import ImageKit from "imagekit";
+import { action } from "@solidjs/router";
 
-function getImageKit() {
+export interface ImageUploadResult {
+  url: string;
+  fileId: string;
+  thumbnailUrl: string;
+}
+
+export const uploadImageAction = action(async (formData: FormData) => {
+  "use server";
+
+  const { default: ImageKit } = await import("imagekit");
+  const { Buffer } = await import("node:buffer");
   const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
   const publicKey = process.env.IMAGEKIT_PUBLIC_KEY;
   const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
 
   if (!urlEndpoint || !publicKey || !privateKey) {
     throw new Error(
-      "ImageKit env vars missing: IMAGEKIT_URL_ENDPOINT, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY"
+      "ImageKit env vars missing: IMAGEKIT_URL_ENDPOINT, IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY",
     );
   }
 
-  return new ImageKit({ urlEndpoint, publicKey, privateKey });
-}
+  const file = formData.get("file");
+  const folder = String(formData.get("folder") ?? "").trim();
 
-export interface ImageKitAuth {
-  token: string;
-  expire: number;
-  signature: string;
-  publicKey: string;
-  urlEndpoint: string;
-}
+  if (!(file instanceof File)) {
+    throw new Error("File upload tidak ditemukan.");
+  }
 
-export const getImageKitAuth = query(async (): Promise<ImageKitAuth> => {
-  "use server";
-  const ik = getImageKit();
-  const auth = ik.getAuthenticationParameters();
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Hanya file gambar yang didukung.");
+  }
+
+  const bytes = await file.arrayBuffer();
+  const ik = new ImageKit({ urlEndpoint, publicKey, privateKey });
+  const safeFileName = `${Date.now()}_${file.name.replace(/\s+/g, "_")}`;
+
+  const uploaded = await ik.upload({
+    file: Buffer.from(bytes),
+    fileName: safeFileName,
+    folder: folder || undefined,
+    useUniqueFileName: true,
+  });
+
   return {
-    ...auth,
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY!,
-    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT!,
-  };
-}, "imagekitAuth");
+    url: uploaded.url,
+    fileId: uploaded.fileId,
+    thumbnailUrl: uploaded.thumbnailUrl,
+  } satisfies ImageUploadResult;
+});

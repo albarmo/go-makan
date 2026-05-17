@@ -9,8 +9,11 @@ import {
 export type Role = "pemesan" | "pembeli";
 
 export interface UserState {
+  id: number;
+  username: string;
   role: Role;
   name: string;
+  hasCompletedSetup: boolean;
   bankName?: string;
   accountNumber?: string;
   cardholderName?: string;
@@ -27,6 +30,19 @@ const UserContext = createContext<UserContextValue>();
 
 const STORAGE_KEY = "titip_makan_user";
 
+function isValidStoredUser(value: unknown): value is UserState {
+  if (!value || typeof value !== "object") return false;
+
+  const candidate = value as Partial<UserState>;
+  return (
+    typeof candidate.id === "number" &&
+    typeof candidate.username === "string" &&
+    (candidate.role === "pemesan" || candidate.role === "pembeli") &&
+    typeof candidate.name === "string" &&
+    typeof candidate.hasCompletedSetup === "boolean"
+  );
+}
+
 export const UserProvider: ParentComponent = (props) => {
   const [user, setUserSignal] = createSignal<UserState | null>(null);
   const [mounted, setMounted] = createSignal(false);
@@ -35,7 +51,12 @@ export const UserProvider: ParentComponent = (props) => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setUserSignal(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (isValidStoredUser(parsed)) {
+          setUserSignal(parsed);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
       }
     } catch {
       // ignore

@@ -1,6 +1,9 @@
-import { createAsync } from "@solidjs/router";
+import { useAction } from "@solidjs/router";
 import { createSignal, Show } from "solid-js";
-import { getImageKitAuth } from "~/server/imagekit";
+import {
+  uploadImageAction,
+  type ImageUploadResult,
+} from "~/server/imagekit";
 
 interface ImageUploadProps {
   name: string;
@@ -11,7 +14,7 @@ interface ImageUploadProps {
 }
 
 export default function ImageUpload(props: ImageUploadProps) {
-  const auth = createAsync(() => getImageKitAuth());
+  const uploadImage = useAction(uploadImageAction);
   const [preview, setPreview] = createSignal<string | null>(
     props.currentUrl ?? null,
   );
@@ -31,47 +34,18 @@ export default function ImageUpload(props: ImageUploadProps) {
     reader.onload = (ev) => setPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
 
-    const ikAuth = auth();
-    if (!ikAuth) {
-      setError("Auth belum siap, coba lagi");
-      return;
-    }
-
     setUploading(true);
     setError("");
 
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append(
-        "fileName",
-        `${Date.now()}_${file.name.replace(/\s+/g, "_")}`,
-      );
-      formData.append("token", ikAuth.token);
-      formData.append("expire", ikAuth.expire.toString());
-      formData.append("signature", ikAuth.signature);
       if (props.folder) {
         formData.append("folder", props.folder);
       }
 
-      const res = await fetch(
-        "https://upload.imagekit.io/api/v1/files/upload",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Basic ${btoa(ikAuth.publicKey + ":")}`,
-          },
-          body: formData,
-        },
-      );
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`Upload gagal: ${errText}`);
-      }
-
-      const data = await res.json();
-      const url = data.url as string;
+      const data = (await uploadImage(formData)) as ImageUploadResult;
+      const url = data.url;
       setUploadedUrl(url);
       props.onUploaded?.(url);
     } catch (err) {

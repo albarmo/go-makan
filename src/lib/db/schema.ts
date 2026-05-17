@@ -16,6 +16,10 @@ export const userProfiles = pgTable(
   {
     id: serial("id").primaryKey(),
     profileKey: varchar("profile_key", { length: 255 }).notNull(),
+    username: varchar("username", { length: 255 }),
+    normalizedUsername: varchar("normalized_username", { length: 255 }),
+    pinHash: text("pin_hash"),
+    hasCompletedSetup: boolean("has_completed_setup").default(false).notNull(),
     role: varchar("role", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     normalizedName: varchar("normalized_name", { length: 255 }).notNull(),
@@ -28,6 +32,9 @@ export const userProfiles = pgTable(
   (table) => ({
     profileKeyIdx: uniqueIndex("user_profiles_profile_key_idx").on(
       table.profileKey,
+    ),
+    usernameIdx: uniqueIndex("user_profiles_normalized_username_idx").on(
+      table.normalizedUsername,
     ),
   }),
 );
@@ -62,6 +69,7 @@ export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   orderDate: date("order_date").notNull(),
   requesterName: varchar("requester_name", { length: 255 }).notNull(),
+  buyerProfileId: integer("buyer_profile_id").references(() => userProfiles.id),
   buyerName: varchar("buyer_name", { length: 255 }),
   storeId: integer("store_id")
     .references(() => stores.id)
@@ -87,12 +95,20 @@ export const orderItems = pgTable("order_items", {
   orderId: integer("order_id")
     .references(() => orders.id)
     .notNull(),
+  storeId: integer("store_id")
+    .references(() => stores.id)
+    .notNull(),
   menuId: integer("menu_id")
     .references(() => menus.id)
     .notNull(),
+  storeNameSnapshot: varchar("store_name_snapshot", { length: 255 }).notNull(),
   menuNameSnapshot: varchar("menu_name_snapshot", { length: 255 }).notNull(),
   priceSnapshot: integer("price_snapshot").notNull(),
   quantity: integer("quantity").default(1).notNull(),
+  fulfillmentStatus: varchar("fulfillment_status", { length: 50 })
+    .default("pending")
+    .notNull(),
+  fulfilledAt: timestamp("fulfilled_at"),
   notes: text("notes"),
   subtotal: integer("subtotal").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -115,6 +131,7 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
   order: one(orders, { fields: [orderItems.orderId], references: [orders.id] }),
+  store: one(stores, { fields: [orderItems.storeId], references: [stores.id] }),
   menu: one(menus, { fields: [orderItems.menuId], references: [menus.id] }),
 }));
 

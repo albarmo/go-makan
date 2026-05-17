@@ -14,6 +14,10 @@ const RoleGuard: ParentComponent<RoleGuardProps> = (props) => {
     if (!mounted()) return;
     const u = user();
     if (!u) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+    if (!u.hasCompletedSetup) {
       navigate("/role", { replace: true });
       return;
     }

@@ -1,9 +1,9 @@
 import { Title } from "@solidjs/meta";
 import { A, createAsync } from "@solidjs/router";
+import { Calendar as IconCalendar } from "lucide-solid";
 import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
-import { IconCalendar } from "~/components/icons";
 import { useUser } from "~/lib/user-context";
 import {
   formatRelativeOrderTime,
@@ -80,11 +80,11 @@ function MyOrdersContent() {
                       <div class="mb-5 flex items-start justify-between gap-4">
                         <div class="flex items-start gap-4">
                           <div class="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-200 ">
-                            {order.storeName.charAt(0).toUpperCase()}
+                            {order.storeSummary.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <p class=" font-semibold leading-tight tracking-[-0.05em] text-slate-900">
-                              {order.storeName}
+                              {order.storeSummary}
                             </p>
                             <p class="mt-2  text-slate-500">
                               {formatRelativeOrderTime(order.createdAt)}

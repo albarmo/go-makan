@@ -1,31 +1,16 @@
 import { Title } from "@solidjs/meta";
-import { createAsync, useAction } from "@solidjs/router";
-import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
-import { IconArrowRight, IconChevronLeft } from "~/components/icons";
+import { A, useAction } from "@solidjs/router";
+import {
+  ArrowRight as IconArrowRight,
+  ChevronLeft as IconChevronLeft,
+  Store as IconStore,
+} from "lucide-solid";
+import { createMemo, createSignal, For, Show } from "solid-js";
 import RoleGuard from "~/components/RoleGuard";
-import { type Menu } from "~/lib/db/schema";
+import { useOrderDraft } from "~/lib/order-draft-context";
 import { useUser } from "~/lib/user-context";
 import { formatRupiah } from "~/lib/utils";
-import { getAvailableMenus, getMenusByStore } from "~/server/menus";
 import { createOrderAction } from "~/server/orders";
-import { getActiveStores } from "~/server/stores";
-
-interface CartItem {
-  menuId: number;
-  storeId: number;
-  menuName: string;
-  price: number;
-  quantity: number;
-  notes: string;
-}
-
-interface BrowseMenu extends Menu {
-  storeName?: string;
-}
-
-export const route = {
-  load: () => getActiveStores(),
-};
 
 export default function NewOrderPage() {
   return (
@@ -37,88 +22,46 @@ export default function NewOrderPage() {
 
 function NewOrderContent() {
   const { user } = useUser();
+  const draft = useOrderDraft();
   const createOrder = useAction(createOrderAction);
-  const stores = createAsync(() => getActiveStores());
-  const allMenus = createAsync(() => getAvailableMenus());
-
-  const [selectedStoreId, setSelectedStoreId] = createSignal<number | null>(
-    null,
-  );
-  const [cart, setCart] = createSignal<CartItem[]>([]);
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal("");
 
-  const selectedStore = createMemo(
-    () =>
-      (stores() ?? []).find((store) => store.id === selectedStoreId()) ?? null,
-  );
-
-  const storeMenus = createAsync(() => {
-    const storeId = selectedStoreId();
-    if (!storeId) return Promise.resolve([] as Menu[]);
-    return getMenusByStore(storeId);
-  });
-
-  const visibleMenus = createMemo<BrowseMenu[]>(() => {
-    const storeId = selectedStoreId();
-    if (!storeId) return (allMenus() ?? []) as BrowseMenu[];
-    return (storeMenus() ?? []).map((menu) => ({
-      ...menu,
-      storeName: selectedStore()?.name ?? undefined,
-    }));
-  });
-
-  const totalAmount = createMemo(() =>
-    cart().reduce((sum, item) => sum + item.price * item.quantity, 0),
-  );
-
-  const lockedStoreId = createMemo(() => cart()[0]?.storeId ?? null);
-
-  const getCartItem = (menuId: number) =>
-    cart().find((item) => item.menuId === menuId);
-
-  const setQuantity = (menu: BrowseMenu, quantity: number) => {
-    if (quantity <= 0) {
-      setCart((items) => items.filter((item) => item.menuId !== menu.id));
-      return;
-    }
-
-    setCart((items) => {
-      const existing = items.find((item) => item.menuId === menu.id);
-      if (!existing) {
-        return [
-          ...items,
-          {
-            menuId: menu.id,
-            storeId: menu.storeId,
-            menuName: menu.name,
-            price: menu.price,
-            quantity,
-            notes: "",
-          },
-        ];
+  const cart = draft.items;
+  const totalAmount = draft.totalAmount;
+  const totalQuantity = draft.totalQuantity;
+  const totalStoreCount = draft.totalStoreCount;
+  const groupedCart = createMemo(() => {
+    const groups = new Map<
+      number,
+      {
+        storeId: number;
+        storeName: string;
+        items: ReturnType<typeof cart>;
+        totalAmount: number;
       }
+    >();
 
-      return items.map((item) =>
-        item.menuId === menu.id ? { ...item, quantity } : item,
-      );
-    });
-
-    if (!selectedStoreId()) {
-      setSelectedStoreId(menu.storeId);
+    for (const item of cart()) {
+      if (!groups.has(item.storeId)) {
+        groups.set(item.storeId, {
+          storeId: item.storeId,
+          storeName: item.storeName,
+          items: [],
+          totalAmount: 0,
+        });
+      }
+      const group = groups.get(item.storeId)!;
+      group.items.push(item);
+      group.totalAmount += item.price * item.quantity;
     }
-  };
 
-  const setItemNotes = (menuId: number, notes: string) => {
-    setCart((items) =>
-      items.map((item) => (item.menuId === menuId ? { ...item, notes } : item)),
-    );
-  };
+    return Array.from(groups.values());
+  });
 
   const handleSubmit = async () => {
-    const store = selectedStore();
     const currentUser = user();
-    if (!store || !currentUser || cart().length === 0) return;
+    if (!currentUser || cart().length === 0) return;
 
     setSubmitting(true);
     setError("");
@@ -126,13 +69,14 @@ function NewOrderContent() {
     try {
       const formData = new FormData();
       formData.set("requesterName", currentUser.name);
-      formData.set("storeId", String(store.id));
       formData.set("notes", "");
       formData.set(
         "items",
         JSON.stringify(
           cart().map((item) => ({
             menuId: item.menuId,
+            storeId: item.storeId,
+            storeName: item.storeName,
             menuName: item.menuName,
             price: item.price,
             quantity: item.quantity,
@@ -141,14 +85,12 @@ function NewOrderContent() {
         ),
       );
       await createOrder(formData);
+      draft.clearDraft();
     } catch (err) {
       setSubmitting(false);
       setError(String(err));
     }
   };
-
-  const isMenuSelectable = (menu: BrowseMenu) =>
-    !lockedStoreId() || lockedStoreId() === menu.storeId;
 
   return (
     <>
@@ -171,14 +113,6 @@ function NewOrderContent() {
         </header>
 
         <main class="mx-auto max-w-[30rem] px-6 pb-44 pt-6">
-          <div class="mb-10 flex items-center justify-between">
-            <StepBadge number={1} label="Store" active />
-            <div class="mx-2 h-px flex-1 bg-slate-300" />
-            <StepBadge number={2} label="Menu" active={!!selectedStore()} />
-            <div class="mx-2 h-px flex-1 bg-slate-300" />
-            <StepBadge number={3} label="Checkout" active={cart().length > 0} />
-          </div>
-
           <section class="space-y-5">
             <h2 class=" font-semibold tracking-[-0.05em] text-slate-900">
               Order Details
@@ -191,198 +125,146 @@ function NewOrderContent() {
               <input class="input " value={user()?.name ?? ""} disabled />
             </div>
 
-            <div>
-              <label class="mb-3 block  font-semibold text-slate-800">
-                Select Store
-              </label>
-              <select
-                class="input "
-                value={selectedStoreId() ?? ""}
-                onChange={(e) => {
-                  const nextValue = e.currentTarget.value;
-                  if (nextValue === "all") {
-                    setSelectedStoreId(null);
-                    setCart([]);
-                    return;
-                  }
-                  setSelectedStoreId(nextValue ? Number(nextValue) : null);
-                  setCart([]);
-                }}
-              >
-                <option value="all">Lihat semua menu</option>
-                <For each={stores()}>
-                  {(store) => <option value={store.id}>{store.name}</option>}
-                </For>
-              </select>
-            </div>
-          </section>
-
-          <section class="mt-10">
-            <div class="mb-5 flex items-center justify-between gap-4">
-              <h2 class=" font-semibold tracking-[-0.05em] text-slate-900">
-                Menu
-              </h2>
-              <span class="rounded-lg bg-slate-200 px-4 py-2 text-base text-slate-600">
-                {selectedStore()?.name ?? "Semua Menu"}
-              </span>
-            </div>
-
-            <Show when={lockedStoreId() && !selectedStore()}>
-              <p class="mb-4 text-sm text-slate-500">
-                Setelah pilih item pertama, order hanya bisa berisi menu dari
-                store yang sama.
-              </p>
-            </Show>
-
-            <Suspense fallback={<MenuGridSkeleton />}>
-              <div class="grid grid-cols-2 gap-5">
-                <For each={visibleMenus()}>
-                  {(menu) => {
-                    const cartItem = () => getCartItem(menu.id);
-                    const selectable = () => isMenuSelectable(menu);
-
-                    return (
-                      <div
-                        class={`tm-card overflow-hidden p-4 ${
-                          selectable() ? "" : "opacity-50"
-                        }`}
-                      >
-                        <div class="h-36 rounded-lg bg-slate-200">
-                          <Show
-                            when={menu.imageUrl}
-                            fallback={
-                              <div class="h-full w-full bg-gradient-to-br from-slate-200 via-slate-300 to-slate-200" />
-                            }
-                          >
-                            <img
-                              src={menu.imageUrl!}
-                              alt={menu.name}
-                              class="h-full w-full rounded-lg object-cover"
-                            />
-                          </Show>
-                        </div>
-                        <p class="mt-4  font-semibold leading-8 tracking-[-0.03em] text-slate-900">
-                          {menu.name}
-                        </p>
-                        <Show when={menu.storeName}>
-                          <p class="mt-1 text-sm font-medium text-primary-700">
-                            {menu.storeName}
-                          </p>
-                        </Show>
-                        <p class="mt-1  text-slate-600">
-                          {formatRupiah(menu.price)}
-                        </p>
-
-                        <div class="mt-5 flex items-center justify-end gap-3">
-                          <Show when={cartItem()}>
-                            <button
-                              type="button"
-                              disabled={!selectable()}
-                              onClick={() =>
-                                setQuantity(
-                                  menu,
-                                  (cartItem()?.quantity ?? 0) - 1,
-                                )
-                              }
-                              class="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-100  text-slate-700 disabled:opacity-50"
-                            >
-                              -
-                            </button>
-                            <span class="min-w-6 text-center  font-semibold">
-                              {cartItem()?.quantity}
-                            </span>
-                          </Show>
-                          <button
-                            type="button"
-                            disabled={!selectable()}
-                            onClick={() =>
-                              setQuantity(menu, (cartItem()?.quantity ?? 0) + 1)
-                            }
-                            class="flex h-12 w-12 items-center justify-center rounded-lg bg-[#35bced]  leading-none text-primary-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
-                          >
-                            +
-                          </button>
-                        </div>
-
-                        <Show when={!selectable()}>
-                          <p class="mt-3 text-xs text-slate-500">
-                            Keranjang aktif untuk store lain.
-                          </p>
-                        </Show>
-                      </div>
-                    );
-                  }}
-                </For>
+            <Show
+              when={cart().length > 0}
+              fallback={
+                <div class="tm-card p-6">
+                  <p class="font-semibold text-slate-900">
+                    Belum ada menu di draft order
+                  </p>
+                  <p class="mt-2 text-base leading-7 text-slate-600">
+                    Pilih menu dari halaman utama dulu, nanti di halaman ini
+                    kamu tinggal edit qty, catatan, atau hapus item.
+                  </p>
+                  <A href="/" class="btn-primary mt-5 w-full">
+                    Pilih Menu dari Home
+                  </A>
+                </div>
+              }
+            >
+              <div class="tm-card p-5">
+                <div class="flex items-start gap-4">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-sky-100 text-primary-700">
+                    <IconStore class="h-5 w-5" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-sm text-slate-500">Ringkasan toko</p>
+                    <p class="mt-2 font-semibold text-slate-900">
+                      {totalStoreCount()} toko di dalam satu order
+                    </p>
+                    <p class="mt-2 text-sm text-slate-500">
+                      {totalQuantity()} item siap dicek sebelum dikirim.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </Suspense>
+            </Show>
           </section>
 
           <Show when={cart().length > 0}>
             <section class="mt-10">
-              <h2 class="mb-5  font-semibold tracking-[-0.05em] text-slate-900">
-                Your Items
-              </h2>
-              <div class="tm-card p-5">
-                <For each={cart()}>
-                  {(item) => (
-                    <div class="border-b border-slate-200 py-4 last:border-b-0">
-                      <div class="mb-4 flex items-start justify-between gap-4">
+              <div class="mb-5 flex items-end justify-between gap-4">
+                <h2 class="font-semibold tracking-[-0.05em] text-slate-900">
+                  Your Items
+                </h2>
+                <A href="/" class="text-base font-semibold text-primary-700">
+                  Tambah Menu
+                </A>
+              </div>
+              <div class="space-y-4">
+                <For each={groupedCart()}>
+                  {(storeGroup) => (
+                    <div class="tm-card p-5">
+                      <div class="mb-4 flex items-start justify-between gap-4 border-b border-slate-200 pb-4">
                         <div>
-                          <p class=" font-semibold text-slate-900">
-                            {item.menuName}
-                          </p>
-                          <p class="mt-1  text-primary-700">
-                            {formatRupiah(item.price)}
+                          <p class="text-sm text-slate-500">Store</p>
+                          <p class="mt-2 font-semibold text-slate-900">
+                            {storeGroup.storeName}
                           </p>
                         </div>
-                        <div class="flex items-center gap-4 rounded-lg bg-slate-100 px-5 py-3">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setQuantity(
-                                {
-                                  id: item.menuId,
-                                  storeId: item.storeId,
-                                  name: item.menuName,
-                                  price: item.price,
-                                } as BrowseMenu,
-                                item.quantity - 1,
-                              )
-                            }
-                            class=" text-slate-700"
-                          >
-                            -
-                          </button>
-                          <span class=" font-semibold">{item.quantity}</span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setQuantity(
-                                {
-                                  id: item.menuId,
-                                  storeId: item.storeId,
-                                  name: item.menuName,
-                                  price: item.price,
-                                } as BrowseMenu,
-                                item.quantity + 1,
-                              )
-                            }
-                            class=" text-slate-700"
-                          >
-                            +
-                          </button>
-                        </div>
+                        <p class="text-base font-semibold text-primary-700">
+                          {formatRupiah(storeGroup.totalAmount)}
+                        </p>
                       </div>
 
-                      <input
-                        type="text"
-                        class="input text-base"
-                        placeholder="Add notes (e.g., less spicy)"
-                        value={item.notes}
-                        onInput={(e) =>
-                          setItemNotes(item.menuId, e.currentTarget.value)
-                        }
-                      />
+                      <For each={storeGroup.items}>
+                        {(item) => (
+                          <div class="border-b border-slate-200 py-4 last:border-b-0">
+                            <div class="mb-4 flex items-start justify-between gap-4">
+                              <div>
+                                <p class=" font-semibold text-slate-900">
+                                  {item.menuName}
+                                </p>
+                                <p class="mt-1  text-primary-700">
+                                  {formatRupiah(item.price)}
+                                </p>
+                              </div>
+                              <div class="flex items-center gap-4 rounded-lg bg-slate-100 px-5 py-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    draft.setQuantity(
+                                      {
+                                        id: item.menuId,
+                                        storeId: item.storeId,
+                                        storeName: item.storeName,
+                                        name: item.menuName,
+                                        price: item.price,
+                                      },
+                                      item.quantity - 1,
+                                    )
+                                  }
+                                  class=" text-slate-700"
+                                >
+                                  -
+                                </button>
+                                <span class=" font-semibold">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    draft.setQuantity(
+                                      {
+                                        id: item.menuId,
+                                        storeId: item.storeId,
+                                        storeName: item.storeName,
+                                        name: item.menuName,
+                                        price: item.price,
+                                      },
+                                      item.quantity + 1,
+                                    )
+                                  }
+                                  class=" text-slate-700"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            <input
+                              type="text"
+                              class="input text-base"
+                              placeholder="Add notes (e.g., less spicy)"
+                              value={item.notes}
+                              onInput={(e) =>
+                                draft.setItemNotes(
+                                  item.menuId,
+                                  e.currentTarget.value,
+                                )
+                              }
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => draft.removeItem(item.menuId)}
+                              class="mt-3 text-sm font-semibold text-red-500"
+                            >
+                              Hapus item
+                            </button>
+                          </div>
+                        )}
+                      </For>
                     </div>
                   )}
                 </For>
@@ -439,16 +321,6 @@ function StepBadge(props: { number: number; label: string; active?: boolean }) {
       >
         {props.label}
       </span>
-    </div>
-  );
-}
-
-function MenuGridSkeleton() {
-  return (
-    <div class="grid grid-cols-2 gap-5">
-      {[1, 2].map((item) => (
-        <div class="h-64 animate-pulse rounded-lg bg-white/80" />
-      ))}
     </div>
   );
 }

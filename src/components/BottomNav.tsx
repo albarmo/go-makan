@@ -1,7 +1,12 @@
 import { A, useLocation } from "@solidjs/router";
+import {
+  House as IconHome,
+  User as IconUser,
+  UtensilsCrossed as IconUtensilsCrossed,
+  Wallet as IconWallet,
+} from "lucide-solid";
 import { Component, For } from "solid-js";
 import { useUser } from "~/lib/user-context";
-import { IconHome, IconUser, IconUtensilsCrossed, IconWallet } from "./icons";
 
 interface NavItem {
   href: string;
@@ -37,7 +42,7 @@ const pembeliNav: NavItem[] = [
   },
   {
     href: "/buyer/settlement",
-    label: "Wallet",
+    label: "Tagihan",
     Icon: IconWallet,
     matches: ["/buyer/settlement"],
   },

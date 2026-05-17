@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
+import { Bell as IconBell, ChevronLeft as IconChevronLeft } from "lucide-solid";
 import { Show } from "solid-js";
 import { useUser } from "~/lib/user-context";
-import { IconBell, IconChevronLeft } from "./icons";
 
 interface HeaderProps {
   title: string;

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "~/lib/db";
 import { orderItems, orders, userProfiles } from "~/lib/db/schema";
 import { buildOrderSummary, todayString } from "~/lib/utils";
+import { publishOrdersUpdated } from "./realtime";
 
 export interface OrderListItem {
   id: number;
@@ -872,6 +873,8 @@ export const createOrderAction = action(async (formData: FormData) => {
     })),
   );
 
+  publishOrdersUpdated({ orderId: order.id, type: "created" });
+
   return redirect(`/orders/${order.id}`);
 }, "createOrder");
 
@@ -890,6 +893,8 @@ export const cancelOrderAction = action(async (formData: FormData) => {
       updatedAt: new Date(),
     })
     .where(eq(orders.id, id));
+
+  publishOrdersUpdated({ orderId: id, type: "cancelled" });
 
   return redirect(redirectTo);
 }, "cancelOrder");
@@ -913,6 +918,7 @@ export const markPurchasedAction = action(async (formData: FormData) => {
     .where(and(eq(orderItems.orderId, id), eq(orderItems.fulfillmentStatus, "pending")));
 
   await syncOrderAfterItemUpdates(id, buyerName, buyerProfileId);
+  publishOrdersUpdated({ orderId: id, type: "purchased" });
 
   return redirect("/buyer/orders");
 }, "markPurchased");
@@ -952,6 +958,12 @@ export const updateOrderItemFulfillmentAction = action(
       parsed.buyerName,
       parsed.buyerProfileId,
     );
+
+    publishOrdersUpdated({
+      orderId: item.orderId,
+      itemId: parsed.itemId,
+      type: "item-fulfillment-updated",
+    });
 
     return redirect(parsed.redirectTo || "/buyer/orders");
   },
@@ -1012,6 +1024,12 @@ export const markStoreItemsPurchasedAction = action(
       );
     }
 
+    publishOrdersUpdated({
+      storeId: parsed.storeId,
+      orderIds,
+      type: "store-items-purchased",
+    });
+
     return redirect(parsed.redirectTo || "/buyer/orders");
   },
   "markStoreItemsPurchased",
@@ -1036,6 +1054,8 @@ export const markOrderPaidAction = action(async (formData: FormData) => {
       updatedAt: new Date(),
     })
     .where(eq(orders.id, id));
+
+  publishOrdersUpdated({ orderId: id, type: "paid" });
 
   return redirect(`/orders/${id}`);
 }, "markOrderPaid");

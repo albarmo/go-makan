@@ -8,6 +8,7 @@ import {
 import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { useOrderEvents } from "~/lib/use-order-events";
 import { formatRupiah } from "~/lib/utils";
 import { getSettlement } from "~/server/orders";
 
@@ -26,8 +27,14 @@ export default function BuyerSettlementPage() {
 }
 
 function BuyerSettlementContent() {
-  const settlement = createAsync(() => getSettlement());
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const settlement = createAsync(() => {
+    refreshKey();
+    return getSettlement();
+  });
   const [copiedState, setCopiedState] = createSignal<string | null>(null);
+
+  useOrderEvents(() => setRefreshKey((value) => value + 1));
 
   const grandTotal = createMemo(() =>
     (settlement() ?? []).reduce((sum, person) => sum + person.totalAmount, 0),

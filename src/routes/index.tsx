@@ -21,6 +21,7 @@ import {
 import BottomNav from "~/components/BottomNav";
 import RoleGuard from "~/components/RoleGuard";
 import { useOrderDraft } from "~/lib/order-draft-context";
+import { useOrderEvents } from "~/lib/use-order-events";
 import { useUser } from "~/lib/user-context";
 import { formatCompactRupiah, formatRupiah } from "~/lib/utils";
 import { getAvailableMenus } from "~/server/menus";
@@ -440,8 +441,17 @@ function PemesanHome() {
 
 function PembeliHome() {
   const { user } = useUser();
-  const todayOrders = createAsync(() => getTodayOrders());
-  const storeOrders = createAsync(() => getBuyerOrdersByStore());
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const todayOrders = createAsync(() => {
+    refreshKey();
+    return getTodayOrders();
+  });
+  const storeOrders = createAsync(() => {
+    refreshKey();
+    return getBuyerOrdersByStore();
+  });
+
+  useOrderEvents(() => setRefreshKey((value) => value + 1));
   const activeOrders = createMemo(() =>
     (todayOrders() ?? []).filter((order) => order.status !== "cancelled"),
   );

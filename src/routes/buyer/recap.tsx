@@ -6,9 +6,10 @@ import {
   Store as IconStore,
   Wallet as IconWallet,
 } from "lucide-solid";
-import { createMemo, For, Show, Suspense } from "solid-js";
+import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { useOrderEvents } from "~/lib/use-order-events";
 import { formatRupiah } from "~/lib/utils";
 import { getBuyerRecap } from "~/server/orders";
 
@@ -25,7 +26,13 @@ export default function BuyerRecapPage() {
 }
 
 function BuyerRecapContent() {
-  const recap = createAsync(() => getBuyerRecap());
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const recap = createAsync(() => {
+    refreshKey();
+    return getBuyerRecap();
+  });
+
+  useOrderEvents(() => setRefreshKey((value) => value + 1));
 
   const grandTotal = createMemo(() =>
     (recap() ?? []).reduce(

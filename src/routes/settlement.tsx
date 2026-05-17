@@ -5,9 +5,10 @@ import {
   Receipt as IconReceipt,
   Wallet as IconWallet,
 } from "lucide-solid";
-import { createMemo, For, Show, Suspense } from "solid-js";
+import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { useOrderEvents } from "~/lib/use-order-events";
 import { useUser } from "~/lib/user-context";
 import {
   formatRupiah,
@@ -28,9 +29,13 @@ export default function SettlementPage() {
 
 function SettlementContent() {
   const { user } = useUser();
-  const orders = createAsync<OrderListItem[]>(() =>
-    getMyOrders(user()?.name ?? ""),
-  );
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const orders = createAsync<OrderListItem[]>(() => {
+    refreshKey();
+    return getMyOrders(user()?.name ?? "");
+  });
+
+  useOrderEvents(() => setRefreshKey((value) => value + 1));
 
   const activeOrders = createMemo(() =>
     (orders() ?? []).filter((order) => order.status !== "cancelled"),

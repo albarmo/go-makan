@@ -15,6 +15,7 @@ import { createEffect, createSignal, For, Show, Suspense } from "solid-js";
 import ImageUpload from "~/components/ImageUpload";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { useOrderEvents } from "~/lib/use-order-events";
 import { useUser } from "~/lib/user-context";
 import {
   formatDateTime,
@@ -45,7 +46,11 @@ export default function OrderDetailPage() {
 
 function OrderDetailContent() {
   const params = useParams<{ id: string }>();
-  const order = createAsync(() => getOrderById(Number(params.id)));
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const order = createAsync(() => {
+    refreshKey();
+    return getOrderById(Number(params.id));
+  });
   const { user } = useUser();
   const cancelOrder = useAction(cancelOrderAction);
   const markOrderPaid = useAction(markOrderPaidAction);
@@ -56,6 +61,8 @@ function OrderDetailContent() {
 
   const isPemesan = () => user()?.role === "pemesan";
   const isPembeli = () => user()?.role === "pembeli";
+
+  useOrderEvents(() => setRefreshKey((value) => value + 1));
 
   createEffect(() => {
     const currentOrder = order();

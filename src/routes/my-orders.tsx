@@ -4,6 +4,7 @@ import { Calendar as IconCalendar } from "lucide-solid";
 import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { useOrderEvents } from "~/lib/use-order-events";
 import { useUser } from "~/lib/user-context";
 import {
   formatRelativeOrderTime,
@@ -24,10 +25,14 @@ export default function MyOrdersPage() {
 
 function MyOrdersContent() {
   const { user } = useUser();
-  const myOrders = createAsync<OrderListItem[]>(() =>
-    getMyOrders(user()?.name ?? ""),
-  );
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const myOrders = createAsync<OrderListItem[]>(() => {
+    refreshKey();
+    return getMyOrders(user()?.name ?? "");
+  });
   const [filter, setFilter] = createSignal<"all" | "submitted">("all");
+
+  useOrderEvents(() => setRefreshKey((value) => value + 1));
 
   const visibleOrders = createMemo(() => {
     const orders = myOrders() ?? [];

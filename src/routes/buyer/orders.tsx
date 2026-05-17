@@ -13,6 +13,7 @@ import {
 import { createMemo, createSignal, For, Show, Suspense } from "solid-js";
 import Layout from "~/components/Layout";
 import RoleGuard from "~/components/RoleGuard";
+import { useOrderEvents } from "~/lib/use-order-events";
 import { useUser } from "~/lib/user-context";
 import {
   formatRupiah,
@@ -41,15 +42,19 @@ export default function BuyerOrdersPage() {
 
 function BuyerOrdersContent() {
   const { user } = useUser();
-  const groupedOrders = createAsync<BuyerStoreOrdersGroup[]>(() =>
-    getBuyerOrdersByStore(),
-  );
+  const [refreshKey, setRefreshKey] = createSignal(0);
+  const groupedOrders = createAsync<BuyerStoreOrdersGroup[]>(() => {
+    refreshKey();
+    return getBuyerOrdersByStore();
+  });
   const updateItemFulfillment = useAction(updateOrderItemFulfillmentAction);
   const markStorePurchased = useAction(markStoreItemsPurchasedAction);
   const [filter, setFilter] = createSignal<
     "all" | "submitted" | "purchased" | "cancelled"
   >("submitted");
   const [updatingKey, setUpdatingKey] = createSignal<string | null>(null);
+
+  useOrderEvents(() => setRefreshKey((value) => value + 1));
 
   const allOrderEntries = createMemo(() =>
     (groupedOrders() ?? []).flatMap((group) => group.orders),
